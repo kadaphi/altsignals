@@ -42,10 +42,10 @@ export default function ChatWidget() {
     try {
       await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('as_token')}`
-        },
+       headers: {
+  'Content-Type': 'application/json',
+  ...(localStorage.getItem('as_token') ? { 'Authorization': `Bearer ${localStorage.getItem('as_token')}` } : {})
+},
         body: JSON.stringify({ message })
       })
       setMessage('')
@@ -54,8 +54,7 @@ export default function ChatWidget() {
     finally { setSending(false) }
   }
 
-  if (!user || pathname.startsWith('/admin')) return null
-
+  if (pathname.startsWith('/admin')) return null
   return (
     <>
       <button

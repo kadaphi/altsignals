@@ -21,11 +21,7 @@ export default function LoginPage() {
       const data = await res.json()
       if (!res.ok) return setError(data.error)
       localStorage.setItem('as_token', data.token)
-      if (data.user?.is_admin) {
-        router.push('/admin')
-      } else {
-        router.push('/dashboard')
-      }
+window.location.href = data.user?.is_admin ? '/admin' : '/dashboard'
     } catch { setError('Something went wrong') }
     finally { setLoading(false) }
   }
