@@ -15,6 +15,7 @@ const navItems = [
   { label: 'KYC', path: '/admin/kyc' },
   { label: 'Chat', path: '/admin/chat' },
   { label: 'Settings', path: '/admin/settings' },
+  { label: 'Send Email', path: '/admin/send-email' },
 ]
 
 export default function AdminLayout({ children }) {

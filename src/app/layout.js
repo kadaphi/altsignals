@@ -2,6 +2,8 @@ import { Geist } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/context/AuthContext'
 import { Analytics } from '@vercel/analytics/react'
+import ChatWidget from '@/components/ChatWidget'
+import VisitorTracker from '@/components/VisitorTracker'
 
 const geist = Geist({
   variable: '--font-geist',
@@ -82,6 +84,8 @@ export default function RootLayout({ children }) {
       <body className={geist.variable}>
         <AuthProvider>
           {children}
+          <ChatWidget />
+          <VisitorTracker />
           <Analytics />
         </AuthProvider>
       </body>
