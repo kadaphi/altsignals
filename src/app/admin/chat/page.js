@@ -77,6 +77,22 @@ export default function AdminChatPage() {
     finally { setSending(false) }
   }
 
+  async function handleClose() {
+    try {
+      await fetch('/api/admin/chat', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('as_token')}`
+        },
+        body: JSON.stringify({ session_id: selectedSession.id, status: 'closed' })
+      })
+      setSelectedSession(null)
+      setMessages([])
+      fetchSessions()
+    } catch {}
+  }
+
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'400px' }}>
       <div style={{ width:'36px', height:'36px', border:'2px solid rgba(0,229,255,0.2)', borderTop:'2px solid #00E5FF', borderRadius:'50%', animation:'spin 1s linear infinite' }}></div>
@@ -88,21 +104,30 @@ export default function AdminChatPage() {
     <div style={{ maxWidth:'1200px' }}>
       <div style={{ marginBottom:'28px' }}>
         <h1 style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'28px', fontWeight:'700', color:'#E8E4DC' }}>Live Chat</h1>
-        <div style={{ fontSize:'12px', color:'#8A8E99', marginTop:'4px' }}>{sessions.length} active sessions</div>
+        <div style={{ fontSize:'12px', color:'#8A8E99', marginTop:'4px' }}>{sessions.length} active session{sessions.length !== 1 ? 's' : ''}</div>
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'280px 1fr', gap:'16px', height:'600px' }}>
-        {/* Sessions */}
-        <div style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', overflowY:'auto' }}>
-          <div style={{ padding:'16px', borderBottom:'1px solid rgba(0,229,255,0.08)', fontSize:'9px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', color:'#00E5FF' }}>Sessions</div>
+        {/* Sessions list */}
+        <div style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', overflowY:'auto', display:'flex', flexDirection:'column' }}>
+          <div style={{ padding:'16px', borderBottom:'1px solid rgba(0,229,255,0.08)', fontSize:'9px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', color:'#00E5FF', flexShrink:0 }}>
+            Active Sessions
+          </div>
           {sessions.length === 0 ? (
             <div style={{ padding:'24px', textAlign:'center', fontSize:'12px', color:'#8A8E99' }}>No active chats</div>
           ) : sessions.map((s, i) => (
             <div key={i} onClick={() => setSelectedSession(s)}
-              style={{ padding:'14px 16px', borderBottom:'1px solid rgba(0,229,255,0.04)', cursor:'pointer', background: selectedSession?.id === s.id ? 'rgba(0,229,255,0.06)' : 'none', borderLeft: selectedSession?.id === s.id ? '2px solid #00E5FF' : '2px solid transparent' }}>
-              <div style={{ fontSize:'12px', fontWeight:'500', color:'#E8E4DC', marginBottom:'2px' }}>{s.users?.full_name}</div>
-              <div style={{ fontSize:'10px', color:'#8A8E99' }}>{s.users?.email}</div>
-              <div style={{ fontSize:'9px', color:'#8A8E99', marginTop:'4px' }}>{new Date(s.created_at).toLocaleDateString()}</div>
+              style={{ padding:'14px 16px', borderBottom:'1px solid rgba(0,229,255,0.04)', cursor:'pointer', background: selectedSession?.id === s.id ? 'rgba(0,229,255,0.06)' : 'none', borderLeft: selectedSession?.id === s.id ? '2px solid #00E5FF' : '2px solid transparent', transition:'all 0.2s' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'2px' }}>
+                <div style={{ width:'8px', height:'8px', background: s.user_id ? '#00E5FF' : '#00FF88', borderRadius:'50%', flexShrink:0 }}></div>
+                <div style={{ fontSize:'12px', fontWeight:'500', color:'#E8E4DC', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {s.display_name}
+                </div>
+              </div>
+              <div style={{ fontSize:'10px', color:'#8A8E99', paddingLeft:'16px' }}>{s.display_email}</div>
+              <div style={{ fontSize:'9px', color: s.user_id ? '#00E5FF' : '#00FF88', paddingLeft:'16px', marginTop:'2px', fontWeight:'600' }}>
+                {s.user_id ? 'Registered' : 'Guest'}
+              </div>
             </div>
           ))}
         </div>
@@ -110,13 +135,23 @@ export default function AdminChatPage() {
         {/* Chat window */}
         <div style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', display:'flex', flexDirection:'column' }}>
           {!selectedSession ? (
-            <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', color:'#8A8E99' }}>Select a chat session</div>
+            <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:'12px' }}>
+              <div style={{ fontSize:'32px', opacity:'0.3' }}>💬</div>
+              <div style={{ fontSize:'13px', color:'#8A8E99' }}>Select a conversation to view</div>
+            </div>
           ) : (
             <>
-              <div style={{ padding:'16px', borderBottom:'1px solid rgba(0,229,255,0.08)' }}>
-                <div style={{ fontSize:'13px', fontWeight:'600', color:'#E8E4DC' }}>{selectedSession.users?.full_name}</div>
-                <div style={{ fontSize:'11px', color:'#8A8E99' }}>{selectedSession.users?.email}</div>
+              <div style={{ padding:'16px 20px', borderBottom:'1px solid rgba(0,229,255,0.08)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <div>
+                  <div style={{ fontSize:'13px', fontWeight:'600', color:'#E8E4DC' }}>{selectedSession.display_name}</div>
+                  <div style={{ fontSize:'11px', color:'#8A8E99' }}>{selectedSession.display_email}</div>
+                </div>
+                <button onClick={handleClose}
+                  style={{ background:'rgba(255,68,68,0.1)', border:'1px solid rgba(255,68,68,0.3)', color:'#FF4444', padding:'8px 16px', fontSize:'9px', fontWeight:'600', letterSpacing:'1.5px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+                  Close Chat
+                </button>
               </div>
+
               <div style={{ flex:1, overflowY:'auto', padding:'16px', display:'flex', flexDirection:'column', gap:'10px' }}>
                 {messages.length === 0 && (
                   <div style={{ textAlign:'center', fontSize:'12px', color:'#8A8E99', padding:'20px' }}>No messages yet</div>
@@ -129,13 +164,14 @@ export default function AdminChatPage() {
                         <div style={{ fontSize:'12px', color:'#E8E4DC', lineHeight:'1.6' }}>{msg.message}</div>
                       </div>
                       <div style={{ fontSize:'9px', color:'#8A8E99', marginTop:'4px', textAlign: msg.is_admin ? 'right' : 'left' }}>
-                        {msg.is_admin ? 'You' : selectedSession.users?.full_name} · {new Date(msg.created_at).toLocaleTimeString()}
+                        {msg.is_admin ? 'You' : selectedSession.display_name} · {new Date(msg.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}
                       </div>
                     </div>
                   </div>
                 ))}
                 <div ref={messagesEndRef} />
-             </div>
+              </div>
+
               <div style={{ padding:'16px', borderTop:'1px solid rgba(0,229,255,0.08)', display:'flex', flexDirection:'column', gap:'8px' }}>
                 <div style={{ display:'flex', gap:'12px' }}>
                   <input
@@ -150,21 +186,6 @@ export default function AdminChatPage() {
                     {sending ? '...' : 'Send'}
                   </button>
                 </div>
-                <button
-                  onClick={async () => {
-                    await fetch('/api/admin/chat', {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('as_token')}` },
-                      body: JSON.stringify({ session_id: selectedSession.id, status: 'closed' })
-                    })
-                    setSelectedSession(null)
-                    setMessages([])
-                    fetchSessions()
-                  }}
-                  style={{ background:'none', border:'1px solid rgba(255,68,68,0.3)', color:'#FF4444', padding:'8px', fontSize:'10px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif' }}
-                >
-                  Close Chat
-                </button>
               </div>
             </>
           )}
