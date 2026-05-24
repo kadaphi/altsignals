@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { generateToken } from '@/lib/auth'
+import { sendOTPEmail } from '@/lib/email'
 import bcrypt from 'bcryptjs'
 
 export async function POST(req) {
@@ -32,6 +33,18 @@ export async function POST(req) {
     if (user.is_banned) {
       return Response.json({ error: 'Your account has been suspended' }, { status: 401 })
     }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+
+    await supabaseAdmin.from('otps').insert({
+      user_id: user.id,
+      email: email.toLowerCase(),
+      otp,
+      expires_at: otpExpiry
+    })
+
+    await sendOTPEmail(email, otp, user.full_name)
 
     const token = generateToken(user.id)
 

@@ -16,7 +16,7 @@ export async function POST(req) {
       return Response.json({ error: 'Please select a currency' }, { status: 400 })
     }
 
-    const nowRes = await fetch('https://api.nowpayments.io/v1/payment', {
+    const nowRes = await fetch('https://api.nowpayments.io/v1/invoice', {
       method: 'POST',
       headers: {
         'x-api-key': process.env.NOWPAYMENTS_API_KEY,
@@ -27,29 +27,29 @@ export async function POST(req) {
         price_currency: 'usd',
         pay_currency: currency,
         ipn_callback_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/deposit/webhook`,
+        success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/deposit?status=success`,
+        cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/deposit`,
         order_description: `AltSignals deposit for ${user.email}`
       })
     })
 
     const nowData = await nowRes.json()
 
-    if (!nowData.pay_address) {
-      return Response.json({ error: 'Failed to create payment. Please try again.' }, { status: 500 })
+    if (!nowData.invoice_url) {
+      return Response.json({ error: 'Failed to create payment invoice. Please try again.' }, { status: 500 })
     }
 
-    const { data: deposit } = await supabaseAdmin.from('deposits').insert({
+    await supabaseAdmin.from('deposits').insert({
       user_id: user.id,
       amount,
       status: 'pending',
-      invoice_id: nowData.payment_id
-    }).select().single()
+      invoice_id: String(nowData.id)
+    })
 
     return Response.json({
       success: true,
-      payment_id: nowData.payment_id,
-      pay_address: nowData.pay_address,
-      pay_amount: nowData.pay_amount,
-      pay_currency: nowData.pay_currency,
+      invoice_url: nowData.invoice_url,
+      invoice_id: String(nowData.id)
     })
   } catch (error) {
     console.error('Deposit error:', error)
