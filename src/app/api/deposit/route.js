@@ -8,21 +8,23 @@ export async function POST(req) {
 
     const { amount, currency } = await req.json()
 
-const { data: settingsRow } = await supabaseAdmin
-  .from('settings')
-  .select('min_deposit')
-  .limit(1)
-  .single()
+    const { data: settingsRow } = await supabaseAdmin
+      .from('settings')
+      .select('min_deposit')
+      .limit(1)
+      .single()
 
-const minDeposit = Number(settingsRow?.min_deposit || 100)
+    const minDeposit = Number(settingsRow?.min_deposit || 100)
 
-if (!amount || amount < minDeposit) {
-  return Response.json({ error: `Minimum deposit is $${minDeposit}` }, { status: 400 })
-}
+    if (!amount || amount < minDeposit) {
+      return Response.json({ error: `Minimum deposit is $${minDeposit}` }, { status: 400 })
+    }
 
     if (!currency) {
       return Response.json({ error: 'Please select a currency' }, { status: 400 })
     }
+
+    const orderId = `as_${user.id}_${Date.now()}`
 
     const nowRes = await fetch('https://api.nowpayments.io/v1/invoice', {
       method: 'POST',
@@ -34,32 +36,35 @@ if (!amount || amount < minDeposit) {
         price_amount: amount,
         price_currency: 'usd',
         pay_currency: currency,
-        ipn_callback_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/deposit/webhook`,
-        success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/deposit?status=success`,
-        cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/deposit`,
+        ipn_callback_url: `https://altsignals.finance/api/deposit/webhook`,
+        success_url: `https://altsignals.finance/dashboard/deposit?status=success`,
+        cancel_url: `https://altsignals.finance/dashboard/deposit`,
+        order_id: orderId,
         order_description: `AltSignals deposit for ${user.email}`
       })
     })
 
     const nowData = await nowRes.json()
+    console.log('NOWPayments invoice response:', JSON.stringify(nowData))
 
     if (!nowData.invoice_url) {
-      return Response.json({ error: 'Failed to create payment invoice. Please try again.' }, { status: 500 })
+      return Response.json({ error: 'Failed to create payment. Please try again.' }, { status: 500 })
     }
 
     await supabaseAdmin.from('deposits').insert({
-  user_id: user.id,
-  amount,
-  status: 'pending',
-  invoice_id: String(nowData.id),
-  payment_id: null
-})
+      user_id: user.id,
+      amount,
+      status: 'pending',
+      invoice_id: String(nowData.id),
+      order_id: orderId,
+      payment_id: null
+    })
 
-return Response.json({
-  success: true,
-  invoice_url: nowData.invoice_url,
-  invoice_id: String(nowData.id)
-})
+    return Response.json({
+      success: true,
+      invoice_url: nowData.invoice_url,
+      invoice_id: String(nowData.id)
+    })
   } catch (error) {
     console.error('Deposit error:', error)
     return Response.json({ error: 'Something went wrong' }, { status: 500 })

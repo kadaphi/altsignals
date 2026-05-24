@@ -19,57 +19,58 @@ export async function POST(req) {
     }
 
     const data = JSON.parse(body)
-    console.log('NOWPayments webhook received:', JSON.stringify(data))
+    console.log('NOWPayments webhook:', JSON.stringify(data))
 
     if (data.payment_status === 'finished' || data.payment_status === 'confirmed') {
-      // Try all possible ID fields NOWPayments might send
-      const possibleIds = [
-        String(data.invoice_id || ''),
-        String(data.order_id || ''),
-        String(data.payment_id || ''),
-      ].filter(Boolean)
+      let deposit = null
 
-      console.log('Looking for deposit with IDs:', possibleIds)
+      // 1. Try order_id first — most reliable since we set it ourselves
+      if (data.order_id && String(data.order_id).startsWith('as_')) {
+        const { data: found } = await supabaseAdmin
+          .from('deposits')
+          .select('*, users(*)')
+          .eq('order_id', String(data.order_id))
+          .maybeSingle()
+        if (found) deposit = found
+      }
 
-     let deposit = null
+      // 2. Try invoice_id
+      if (!deposit && data.invoice_id) {
+        const { data: found } = await supabaseAdmin
+          .from('deposits')
+          .select('*, users(*)')
+          .eq('invoice_id', String(data.invoice_id))
+          .maybeSingle()
+        if (found) deposit = found
+      }
 
-const paymentId = String(data.payment_id || '')
-const invoiceId = String(data.invoice_id || data.order_id || '')
+      // 3. Try payment_id
+      if (!deposit && data.payment_id) {
+        const { data: found } = await supabaseAdmin
+          .from('deposits')
+          .select('*, users(*)')
+          .eq('payment_id', String(data.payment_id))
+          .maybeSingle()
+        if (found) deposit = found
+      }
 
-console.log('Webhook payment_id:', paymentId, 'invoice_id:', invoiceId)
+      console.log('Deposit found:', deposit ? deposit.id : 'NOT FOUND')
 
-if (paymentId) {
-  const { data: found } = await supabaseAdmin
-    .from('deposits')
-    .select('*, users(*)')
-    .eq('payment_id', paymentId)
-    .maybeSingle()
-  if (found) deposit = found
-}
+      if (!deposit) {
+        console.error('Deposit not found. Webhook data:', JSON.stringify(data))
+        return Response.json({ success: true })
+      }
 
-if (!deposit && invoiceId) {
-  const { data: found } = await supabaseAdmin
-    .from('deposits')
-    .select('*, users(*)')
-    .eq('invoice_id', invoiceId)
-    .maybeSingle()
-  if (found) deposit = found
-}
+      // Store payment_id for future reference
+      if (data.payment_id) {
+        await supabaseAdmin
+          .from('deposits')
+          .update({ payment_id: String(data.payment_id) })
+          .eq('id', deposit.id)
+      }
 
-     if (!deposit) {
-  console.error('Deposit not found for IDs:', paymentId, invoiceId)
-  return Response.json({ success: true })
-}
-
-if (deposit && !deposit.payment_id && paymentId) {
-  await supabaseAdmin
-    .from('deposits')
-    .update({ payment_id: paymentId })
-    .eq('id', deposit.id)
-}
-
-if (deposit.status === 'pending') {
-  await supabaseAdmin
+      if (deposit.status === 'pending') {
+        await supabaseAdmin
           .from('deposits')
           .update({ status: 'completed' })
           .eq('id', deposit.id)
@@ -110,9 +111,9 @@ if (deposit.status === 'pending') {
           })
         }
 
-        console.log('Deposit credited successfully:', deposit.id)
+        console.log('Deposit credited:', deposit.id, 'Amount:', deposit.amount)
       } else {
-        console.log('Deposit already processed:', deposit.id)
+        console.log('Already processed:', deposit.id)
       }
     }
 
