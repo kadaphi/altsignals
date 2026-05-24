@@ -1,6 +1,27 @@
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 
+async function generateTelegramInviteLink() {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/createChatInviteLink`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: process.env.TELEGRAM_CHANNEL_ID,
+        member_limit: 1,
+        name: `VIP-${Date.now()}`
+      })
+    })
+    const data = await res.json()
+    if (data.ok) return data.result.invite_link
+    console.error('Telegram invite error:', data)
+    return null
+  } catch (error) {
+    console.error('Telegram invite error:', error)
+    return null
+  }
+}
+
 export async function GET(req) {
   try {
     const user = await getUserFromRequest(req)
@@ -67,12 +88,15 @@ export async function POST(req) {
       .update({ deposit_balance: user.deposit_balance - plan.price })
       .eq('id', user.id)
 
+    const telegramInviteLink = await generateTelegramInviteLink()
+
     const { data: subscription } = await supabaseAdmin
       .from('vip_subscriptions')
       .insert({
         user_id: user.id,
         plan_id,
-        status: 'pending',
+        status: 'active',
+        telegram_invite_link: telegramInviteLink,
         ends_at: endsAt
       })
       .select()
@@ -87,8 +111,10 @@ export async function POST(req) {
 
     await supabaseAdmin.from('notifications').insert({
       user_id: user.id,
-      title: 'VIP Subscription Pending',
-      message: `Your ${plan.name} VIP subscription is being processed. You will receive your Telegram invite link shortly.`,
+      title: '👑 VIP Access Granted!',
+      message: telegramInviteLink
+        ? `Your ${plan.name} VIP subscription is active. Click your invite link in the VIP section to join the channel.`
+        : `Your ${plan.name} VIP subscription is active. Your Telegram invite link will be sent shortly.`,
       type: 'vip'
     })
 
@@ -106,8 +132,9 @@ export async function POST(req) {
       })
     }
 
-    return Response.json({ success: true, subscription })
-  } catch {
+    return Response.json({ success: true, subscription, telegram_invite_link: telegramInviteLink })
+  } catch (error) {
+    console.error('VIP error:', error)
     return Response.json({ error: 'Something went wrong' }, { status: 500 })
   }
 }

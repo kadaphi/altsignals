@@ -43,3 +43,20 @@ export async function POST(req) {
     return Response.json({ error: 'Something went wrong' }, { status: 500 })
   }
 }
+export async function PUT(req) {
+  try {
+    const user = await getUserFromRequest(req)
+    if (!user?.is_admin) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { session_id, status } = await req.json()
+
+    await supabaseAdmin
+      .from('chat_sessions')
+      .update({ status })
+      .eq('id', session_id)
+
+    return Response.json({ success: true })
+  } catch {
+    return Response.json({ error: 'Something went wrong' }, { status: 500 })
+  }
+}

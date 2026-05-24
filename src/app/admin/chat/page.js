@@ -135,18 +135,35 @@ export default function AdminChatPage() {
                   </div>
                 ))}
                 <div ref={messagesEndRef} />
-              </div>
-              <div style={{ padding:'16px', borderTop:'1px solid rgba(0,229,255,0.08)', display:'flex', gap:'12px' }}>
-                <input
-                  style={{ flex:1, background:'#111320', border:'1px solid rgba(0,229,255,0.15)', padding:'12px 16px', color:'#E8E4DC', fontFamily:'Inter,sans-serif', fontSize:'13px', outline:'none' }}
-                  placeholder="Type a reply..."
-                  value={reply}
-                  onChange={e => setReply(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleReply()}
-                />
-                <button onClick={handleReply} disabled={sending || !reply.trim()}
-                  style={{ background:'#00E5FF', border:'none', color:'#0A0A0F', padding:'12px 24px', fontSize:'10px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', opacity: sending || !reply.trim() ? 0.6 : 1 }}>
-                  {sending ? '...' : 'Send'}
+             </div>
+              <div style={{ padding:'16px', borderTop:'1px solid rgba(0,229,255,0.08)', display:'flex', flexDirection:'column', gap:'8px' }}>
+                <div style={{ display:'flex', gap:'12px' }}>
+                  <input
+                    style={{ flex:1, background:'#111320', border:'1px solid rgba(0,229,255,0.15)', padding:'12px 16px', color:'#E8E4DC', fontFamily:'Inter,sans-serif', fontSize:'13px', outline:'none' }}
+                    placeholder="Type a reply..."
+                    value={reply}
+                    onChange={e => setReply(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleReply()}
+                  />
+                  <button onClick={handleReply} disabled={sending || !reply.trim()}
+                    style={{ background:'#00E5FF', border:'none', color:'#0A0A0F', padding:'12px 24px', fontSize:'10px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', opacity: sending || !reply.trim() ? 0.6 : 1 }}>
+                    {sending ? '...' : 'Send'}
+                  </button>
+                </div>
+                <button
+                  onClick={async () => {
+                    await fetch('/api/admin/chat', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('as_token')}` },
+                      body: JSON.stringify({ session_id: selectedSession.id, status: 'closed' })
+                    })
+                    setSelectedSession(null)
+                    setMessages([])
+                    fetchSessions()
+                  }}
+                  style={{ background:'none', border:'1px solid rgba(255,68,68,0.3)', color:'#FF4444', padding:'8px', fontSize:'10px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif' }}
+                >
+                  Close Chat
                 </button>
               </div>
             </>

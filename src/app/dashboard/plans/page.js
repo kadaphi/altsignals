@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 
 export default function PlansPage() {
-  const { user, updateUser } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
   const [plans, setPlans] = useState([])
   const [investments, setInvestments] = useState([])
@@ -18,10 +18,15 @@ export default function PlansPage() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => { fetchPlans() }, [])
+
   useEffect(() => {
-    if (customAmount && Number(customAmount) >= 2000) calculateCustom(Number(customAmount))
-    else setCustomPreview(null)
-  }, [customAmount])
+    const val = Number(customAmount)
+    if (customAmount && val >= 2000) {
+      calculateCustom(val)
+    } else {
+      setCustomPreview(null)
+    }
+  }, [customAmount, plans])
 
   async function fetchPlans() {
     try {
@@ -38,14 +43,24 @@ export default function PlansPage() {
   }
 
   function calculateCustom(amount) {
-    let plan = plans[0]
+    if (!plans.length) return
+    let matchedPlan = plans[0]
     for (const p of plans) {
-      if (amount >= p.min_amount) plan = p
+      if (amount >= p.min_amount) matchedPlan = p
     }
-    const weeklyReturn = plan ? (plan.weekly_return / plan.min_amount) * amount : amount * 0.42
-    const duration = plan ? plan.duration_days : 28
-    const totalROI = weeklyReturn * Math.floor(duration / 7)
-    setCustomPreview({ weeklyReturn: Math.round(weeklyReturn), totalROI: Math.round(totalROI), duration, planName: plan?.name })
+    const rate = matchedPlan.weekly_return / matchedPlan.min_amount
+    const weeklyReturn = Math.round(amount * rate)
+    const duration = matchedPlan.duration_days
+    const weeks = Math.floor(duration / 7)
+    const totalROI = weeklyReturn * weeks
+    setCustomPreview({
+      weeklyReturn,
+      totalROI,
+      duration,
+      planName: matchedPlan.name,
+      rate: Math.round(rate * 100),
+      planId: matchedPlan.id
+    })
   }
 
   async function handleInvest(plan_id, amount) {
@@ -64,6 +79,7 @@ export default function PlansPage() {
       setSelectedPlan(null)
       setShowCustom(false)
       setCustomAmount('')
+      setCustomPreview(null)
       fetchPlans()
     } catch { setError('Something went wrong') }
     finally { setInvesting(false) }
@@ -84,7 +100,6 @@ export default function PlansPage() {
         @keyframes spin{to{transform:rotate(360deg);}}
         .plan-card { background:#0F0F1A; border:1px solid rgba(0,229,255,0.08); padding:28px; position:relative; cursor:pointer; transition:all 0.3s; display:flex; flex-direction:column; }
         .plan-card:hover { border-color:rgba(0,229,255,0.3); transform:translateY(-2px); }
-        .plan-card::before { content:''; position:absolute; top:0; left:0; width:100%; height:2px; }
         .plans-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
         .custom-input { width:100%; background:#111320; border:1px solid rgba(0,229,255,0.15); padding:14px 16px; color:#E8E4DC; font-family:'Inter',sans-serif; font-size:16px; outline:none; transition:border-color 0.3s; }
         .custom-input:focus { border-color:rgba(0,229,255,0.5); }
@@ -104,8 +119,6 @@ export default function PlansPage() {
         </div>
       )}
 
-      {error && <div style={{ background:'rgba(255,68,68,0.1)', border:'1px solid rgba(255,68,68,0.3)', padding:'12px 16px', marginBottom:'20px', fontSize:'12px', color:'#FF4444' }}>{error}</div>}
-
       <div style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', padding:'16px 20px', marginBottom:'24px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <div style={{ fontSize:'11px', color:'#8A8E99' }}>Available Balance</div>
         <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'22px', fontWeight:'700', color:'#00E5FF' }}>
@@ -118,10 +131,9 @@ export default function PlansPage() {
         <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'3px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'16px' }}>Fixed Plans</div>
         <div className="plans-grid">
           {plans.map((plan, i) => (
-            <div key={plan.id} className="plan-card" onClick={() => { setSelectedPlan(plan); setError(''); setSuccess(false) }}
-              style={{ '--plan-color': COLORS[i] || '#00E5FF' }}>
-              <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'2px', background:`linear-gradient(90deg,${COLORS[i] || '#00E5FF'},transparent)` }}></div>
-              <div style={{ fontSize:'9px', fontWeight:'700', letterSpacing:'3px', textTransform:'uppercase', color: COLORS[i] || '#00E5FF', marginBottom:'16px' }}>{plan.name}</div>
+            <div key={plan.id} className="plan-card" onClick={() => { setSelectedPlan({ ...plan, isCustom: false }); setError('') }}>
+              <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'2px', background:`linear-gradient(90deg,${COLORS[i]||'#00E5FF'},transparent)` }}></div>
+              <div style={{ fontSize:'9px', fontWeight:'700', letterSpacing:'3px', textTransform:'uppercase', color: COLORS[i]||'#00E5FF', marginBottom:'16px' }}>{plan.name}</div>
               <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'32px', fontWeight:'700', color:'#E8E4DC', marginBottom:'6px' }}>${Number(plan.min_amount).toLocaleString()}</div>
               <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'18px', fontWeight:'600', color:'#00FF88', marginBottom:'8px' }}>→ ${Number(plan.target_profit).toLocaleString()}</div>
               {plan.weekly_return && (
@@ -130,7 +142,7 @@ export default function PlansPage() {
                 </div>
               )}
               <div style={{ fontSize:'10px', fontWeight:'500', letterSpacing:'1.5px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'20px', flex:1 }}>{plan.duration_days} Days</div>
-              <div style={{ background: COLORS[i] || '#00E5FF', padding:'10px', textAlign:'center', fontSize:'9px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', color:'#0A0A0F', clipPath:'polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)' }}>
+              <div style={{ background: COLORS[i]||'#00E5FF', padding:'10px', textAlign:'center', fontSize:'9px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', color:'#0A0A0F', clipPath:'polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)' }}>
                 Invest Now →
               </div>
             </div>
@@ -145,7 +157,7 @@ export default function PlansPage() {
           <div>
             <div style={{ fontSize:'9px', fontWeight:'700', letterSpacing:'3px', textTransform:'uppercase', color:'#7B61FF', marginBottom:'8px' }}>Custom Plan</div>
             <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'20px', fontWeight:'700', color:'#E8E4DC' }}>Invest any amount from $2,000</div>
-            <div style={{ fontSize:'12px', color:'#8A8E99', marginTop:'6px' }}>Returns calculated based on closest plan rate</div>
+            <div style={{ fontSize:'12px', color:'#8A8E99', marginTop:'6px' }}>Returns calculated proportionally based on plan rates</div>
           </div>
           <button onClick={() => { setShowCustom(!showCustom); setError('') }}
             style={{ background: showCustom ? 'none' : '#7B61FF', border:'1px solid #7B61FF', color: showCustom ? '#7B61FF' : '#fff', padding:'12px 24px', fontSize:'10px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', clipPath:'polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)' }}>
@@ -155,44 +167,50 @@ export default function PlansPage() {
 
         {showCustom && (
           <div>
-            <div style={{ marginBottom:'20px' }}>
+            <div style={{ marginBottom:'8px' }}>
               <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'8px' }}>Your Investment Amount ($)</div>
               <div style={{ position:'relative' }}>
                 <span style={{ position:'absolute', left:'16px', top:'50%', transform:'translateY(-50%)', color:'#7B61FF', fontSize:'16px' }}>$</span>
-                <input className="custom-input" style={{ paddingLeft:'32px' }} type="number" placeholder="Min. $2,000" value={customAmount} onChange={e => setCustomAmount(e.target.value)} min="2000" />
+                <input className="custom-input" style={{ paddingLeft:'32px' }} type="number" placeholder="Min. $2,000" value={customAmount}
+                  onChange={e => setCustomAmount(e.target.value)} min="2000" />
               </div>
+              {customAmount && Number(customAmount) < 2000 && (
+                <div style={{ fontSize:'11px', color:'#FF4444', marginTop:'6px' }}>Minimum custom investment is $2,000</div>
+              )}
+              {customAmount && Number(customAmount) > 0 && Number(customAmount) < 2000 ? null : customAmount && (
+                <div style={{ fontSize:'11px', color:'#8A8E99', marginTop:'6px' }}>
+                  Amount qualifies for: <span style={{ color:'#7B61FF' }}>{customPreview?.planName || '...'} plan rate</span>
+                  {customPreview && <span style={{ color:'#7B61FF' }}> ({customPreview.rate}% weekly)</span>}
+                </div>
+              )}
             </div>
 
-            {customPreview && (
-              <div style={{ background:'rgba(123,97,255,0.06)', border:'1px solid rgba(123,97,255,0.2)', padding:'20px', marginBottom:'20px' }}>
-                <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#7B61FF', marginBottom:'16px' }}>Based on {customPreview.planName} plan rate</div>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'16px', textAlign:'center' }}>
-                  {[
-                    { label:'You Invest', value:`$${Number(customAmount).toLocaleString()}` },
-                    { label:'Weekly Return', value:`$${customPreview.weeklyReturn.toLocaleString()}`, color:'#00FF88' },
-                    { label:'Total ROI', value:`$${customPreview.totalROI.toLocaleString()}`, color:'#00FF88' },
-                  ].map((s,i) => (
-                    <div key={i}>
-                      <div style={{ fontSize:'9px', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'8px' }}>{s.label}</div>
-                      <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'22px', fontWeight:'700', color: s.color || '#E8E4DC' }}>{s.value}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ fontSize:'11px', color:'#8A8E99', textAlign:'center', marginTop:'12px' }}>Duration: {customPreview.duration} days</div>
-              </div>
-            )}
-
             {customPreview && Number(customAmount) >= 2000 && (
-              <button
-                onClick={() => {
-                  const matchedPlan = [...plans].reverse().find(p => Number(customAmount) >= p.min_amount)
-                  if (!matchedPlan) return setError('No matching plan found')
-                  setSelectedPlan({ ...matchedPlan, customAmount: Number(customAmount), isCustom: true })
-                }}
-                style={{ width:'100%', background:'#7B61FF', border:'none', padding:'14px', color:'#fff', fontSize:'11px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', clipPath:'polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)' }}
-              >
-                Proceed with Custom Plan →
-              </button>
+              <>
+                <div style={{ background:'rgba(123,97,255,0.06)', border:'1px solid rgba(123,97,255,0.2)', padding:'20px', marginBottom:'20px', marginTop:'16px' }}>
+                  <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#7B61FF', marginBottom:'16px' }}>
+                    Projection — {customPreview.planName} rate ({customPreview.rate}% weekly)
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'16px', textAlign:'center' }}>
+                    {[
+                      { label:'You Invest', value:`$${Number(customAmount).toLocaleString()}` },
+                      { label:'Weekly Return', value:`$${customPreview.weeklyReturn.toLocaleString()}`, color:'#00FF88' },
+                      { label:'Total ROI', value:`$${customPreview.totalROI.toLocaleString()}`, color:'#00FF88' },
+                    ].map((s,i) => (
+                      <div key={i}>
+                        <div style={{ fontSize:'9px', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'8px' }}>{s.label}</div>
+                        <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'22px', fontWeight:'700', color: s.color||'#E8E4DC' }}>{s.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize:'11px', color:'#8A8E99', textAlign:'center', marginTop:'12px' }}>Duration: {customPreview.duration} days</div>
+                </div>
+                <button
+                  onClick={() => setSelectedPlan({ ...plans.find(p => p.id === customPreview.planId), isCustom: true, customAmount: Number(customAmount) })}
+                  style={{ width:'100%', background:'#7B61FF', border:'none', padding:'14px', color:'#fff', fontSize:'11px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', clipPath:'polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)' }}>
+                  Proceed with Custom Plan →
+                </button>
+              </>
             )}
           </div>
         )}
@@ -233,8 +251,8 @@ export default function PlansPage() {
               {[
                 { label:'Plan', value: selectedPlan.isCustom ? `Custom (${selectedPlan.name} rate)` : selectedPlan.name },
                 { label:'Amount', value:`$${Number(selectedPlan.isCustom ? selectedPlan.customAmount : selectedPlan.min_amount).toLocaleString()}` },
-                { label:'Target Profit', value:`$${Number(selectedPlan.target_profit).toLocaleString()}` },
                 { label:'Duration', value:`${selectedPlan.duration_days} Days` },
+                { label:'Weekly Return', value: selectedPlan.weekly_return ? `$${Math.round((selectedPlan.isCustom ? selectedPlan.customAmount : selectedPlan.min_amount) * (selectedPlan.weekly_return / selectedPlan.min_amount)).toLocaleString()}` : 'N/A' },
               ].map((item,i) => (
                 <div key={i} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom: i < 3 ? '1px solid rgba(0,229,255,0.06)' : 'none' }}>
                   <span style={{ fontSize:'11px', color:'#8A8E99' }}>{item.label}</span>
@@ -243,8 +261,10 @@ export default function PlansPage() {
               ))}
             </div>
             <div style={{ display:'flex', gap:'12px' }}>
-              <button onClick={() => { setSelectedPlan(null); setError('') }} style={{ flex:1, background:'none', border:'1px solid rgba(0,229,255,0.2)', color:'#8A8E99', padding:'14px', fontSize:'10px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>Cancel</button>
-              <button onClick={() => handleInvest(selectedPlan.id, selectedPlan.isCustom ? selectedPlan.customAmount : selectedPlan.min_amount)} disabled={investing}
+              <button onClick={() => { setSelectedPlan(null); setError('') }}
+                style={{ flex:1, background:'none', border:'1px solid rgba(0,229,255,0.2)', color:'#8A8E99', padding:'14px', fontSize:'10px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>Cancel</button>
+              <button onClick={() => handleInvest(selectedPlan.id, selectedPlan.isCustom ? selectedPlan.customAmount : selectedPlan.min_amount)}
+                disabled={investing}
                 style={{ flex:2, background:'#00E5FF', border:'none', color:'#0A0A0F', padding:'14px', fontSize:'10px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', clipPath:'polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)', opacity: investing ? 0.6 : 1 }}>
                 {investing ? 'Processing...' : 'Confirm Investment →'}
               </button>
