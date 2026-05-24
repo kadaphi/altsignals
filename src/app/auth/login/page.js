@@ -65,9 +65,9 @@ export default function LoginPage() {
 
       <div style={{ width:'100%', maxWidth:'440px' }}>
         <div style={{ textAlign:'center', marginBottom:'40px' }}>
-          <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'24px', fontWeight:'700', marginBottom:'8px' }}>
-            <span style={{ color:'#00E5FF' }}>ALT</span>SIGNALS
-          </div>
+          <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'24px', fontWeight:'700', marginBottom:'8px', cursor:'pointer' }} onClick={() => router.push('/')}>
+  <span style={{ color:'#00E5FF' }}>ALT</span>SIGNALS
+</div>
           <div style={{ fontSize:'13px', color:'#8A8E99' }}>
             {step === 1 ? 'Sign in to your account' : 'Verify your identity'}
           </div>

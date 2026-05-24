@@ -8,9 +8,17 @@ export async function POST(req) {
 
     const { amount, currency } = await req.json()
 
-    if (!amount || amount < 100) {
-      return Response.json({ error: 'Minimum deposit is $100' }, { status: 400 })
-    }
+const { data: minDepositSetting } = await supabaseAdmin
+  .from('settings')
+  .select('value')
+  .eq('key', 'min_deposit')
+  .single()
+
+const minDeposit = Number(minDepositSetting?.value || 100)
+
+if (!amount || amount < minDeposit) {
+  return Response.json({ error: `Minimum deposit is $${minDeposit}` }, { status: 400 })
+}
 
     if (!currency) {
       return Response.json({ error: 'Please select a currency' }, { status: 400 })
