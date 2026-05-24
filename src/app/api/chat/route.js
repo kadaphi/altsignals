@@ -1,30 +1,19 @@
-import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getUserFromRequest } from '@/lib/auth'
 
 export async function GET(req) {
   try {
     const user = await getUserFromRequest(req)
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data: settings } = await supabaseAdmin
-      .from('settings')
-      .select('chat_enabled')
-      .single()
-
-    if (!settings?.chat_enabled) {
-      return Response.json({ status: 'closed' })
-    }
-
     const { data: session } = await supabaseAdmin
       .from('chat_sessions')
       .select('*')
       .eq('user_id', user.id)
       .eq('status', 'open')
-      .single()
+      .maybeSingle()
 
-    if (!session) {
-      return Response.json({ status: 'open', messages: [] })
-    }
+    if (!session) return Response.json({ status: 'open', messages: [] })
 
     const { data: messages } = await supabaseAdmin
       .from('chat_messages')
@@ -40,10 +29,10 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const user = await getUserFromRequest(req)
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
     const { message, image_url } = await req.json()
+    const user = await getUserFromRequest(req)
+
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
     let session
     const { data: existing } = await supabaseAdmin
@@ -51,7 +40,7 @@ export async function POST(req) {
       .select('*')
       .eq('user_id', user.id)
       .eq('status', 'open')
-      .single()
+      .maybeSingle()
 
     if (existing) {
       session = existing
@@ -79,9 +68,10 @@ export async function POST(req) {
         body: JSON.stringify({
           token: process.env.PUSHOVER_API_TOKEN,
           user: process.env.PUSHOVER_USER_KEY,
-          title: '💬 New AltSignals Chat Message',
-          message: `${user.full_name}: ${message || '[Image]'}`,
-          priority: 0
+          title: `💬 New message from ${user.full_name}`,
+          message: message || '[Image]',
+          priority: 1,
+          sound: 'cashregister'
         })
       })
     }

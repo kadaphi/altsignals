@@ -1,12 +1,11 @@
 export async function POST(req) {
   try {
     const { page, userAgent } = await req.json()
-
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 'Unknown'
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'Unknown'
     const country = req.headers.get('x-vercel-ip-country') || 'Unknown'
     const city = req.headers.get('x-vercel-ip-city') || 'Unknown'
 
-    if (process.env.PUSHOVER_API_TOKEN) {
+    if (process.env.PUSHOVER_API_TOKEN && process.env.PUSHOVER_USER_KEY) {
       await fetch('https://api.pushover.net/1/messages.json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
