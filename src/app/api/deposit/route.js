@@ -48,17 +48,18 @@ if (!amount || amount < minDeposit) {
     }
 
     await supabaseAdmin.from('deposits').insert({
-      user_id: user.id,
-      amount,
-      status: 'pending',
-      invoice_id: String(nowData.id)
-    })
+  user_id: user.id,
+  amount,
+  status: 'pending',
+  invoice_id: String(nowData.id),
+  payment_id: null
+})
 
-    return Response.json({
-      success: true,
-      invoice_url: nowData.invoice_url,
-      invoice_id: String(nowData.id)
-    })
+return Response.json({
+  success: true,
+  invoice_url: nowData.invoice_url,
+  invoice_id: String(nowData.id)
+})
   } catch (error) {
     console.error('Deposit error:', error)
     return Response.json({ error: 'Something went wrong' }, { status: 500 })

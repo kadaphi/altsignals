@@ -44,27 +44,33 @@ export default function DepositPage() {
   }, [])
 
   async function pollDeposit(id) {
-    let attempts = 0
-    const interval = setInterval(async () => {
-      attempts++
-      try {
-        const res = await fetch('/api/deposit/check', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('as_token')}` },
-          body: JSON.stringify({ invoice_id: id })
-        })
-        const data = await res.json()
-        if (data.status === 'completed') {
-          clearInterval(interval)
-          setPolling(false)
-          setSuccess(true)
-          localStorage.removeItem('as_invoice_id')
-          if (data.user) updateUser(data.user)
-        }
-      } catch {}
-      if (attempts > 20) clearInterval(interval)
-    }, 3000)
-  }
+  let attempts = 0
+  const interval = setInterval(async () => {
+    attempts++
+    try {
+      const res = await fetch('/api/deposit/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('as_token')}` },
+        body: JSON.stringify({ invoice_id: id })
+      })
+      const data = await res.json()
+      if (data.status === 'completed') {
+        clearInterval(interval)
+        setPolling(false)
+        setSuccess(true)
+        localStorage.removeItem('as_invoice_id')
+        if (data.user) updateUser(data.user)
+        window.history.replaceState({}, '', '/dashboard/deposit')
+        return
+      }
+    } catch {}
+    if (attempts > 20) {
+      clearInterval(interval)
+      setPolling(false)
+      window.history.replaceState({}, '', '/dashboard/deposit')
+    }
+  }, 3000)
+}
 
   async function handleDeposit() {
     if (!amount || Number(amount) < minDeposit) return setError(`Minimum deposit is $${minDeposit}`)
