@@ -6,191 +6,105 @@ export async function POST(req) {
     const user = await getUserFromRequest(req)
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { invoice_id } = await req.json()
-    if (!invoice_id) return Response.json({ error: 'Invoice ID required' }, { status: 400 })
+    const { payment_id, deposit_id } = await req.json()
 
-    const { data: deposit } = await supabaseAdmin
-      .from('deposits')
-      .select('*')
-      .eq('invoice_id', invoice_id)
-      .eq('user_id', user.id)
-      .maybeSingle()
+    const res = await fetch(`https://api.nowpayments.io/v1/payment/${payment_id}`, {
+      headers: { 'x-api-key': process.env.NOWPAYMENTS_API_KEY }
+    })
 
-    if (!deposit) {
-      // Try by order_id prefix
-      const { data: deposits } = await supabaseAdmin
+    if (!res.ok) {
+      const { data: deposit } = await supabaseAdmin
         .from('deposits')
         .select('*')
+        .eq('id', deposit_id)
         .eq('user_id', user.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      if (!deposits || deposits.length === 0) {
-        return Response.json({ error: 'Deposit not found' }, { status: 404 })
-      }
-
-      const latestDeposit = deposits[0]
-
-      // Check payment status from NOWPayments using invoice_id
-      const nowRes = await fetch(`https://api.nowpayments.io/v1/invoice/${latestDeposit.invoice_id}`, {
-        headers: { 'x-api-key': process.env.NOWPAYMENTS_API_KEY }
-      })
-
-      if (nowRes.ok) {
-        const nowData = await nowRes.json()
-        console.log('NOWPayments invoice status:', JSON.stringify(nowData))
-
-        if (nowData.payment_status === 'finished' || nowData.payment_status === 'confirmed' || nowData.status === 'finished') {
-          // Credit the deposit
-          if (latestDeposit.status === 'pending') {
-            const { data: userRow } = await supabaseAdmin
-              .from('users')
-              .select('*')
-              .eq('id', user.id)
-              .single()
-
-            await supabaseAdmin
-              .from('deposits')
-              .update({ status: 'completed' })
-              .eq('id', latestDeposit.id)
-
-            await supabaseAdmin
-              .from('users')
-              .update({
-                deposit_balance: (userRow.deposit_balance || 0) + Number(latestDeposit.amount),
-                total_deposited: (userRow.total_deposited || 0) + Number(latestDeposit.amount)
-              })
-              .eq('id', user.id)
-
-            await supabaseAdmin.from('trading_history').insert({
-              user_id: user.id,
-              type: 'deposit',
-              amount: Number(latestDeposit.amount),
-              description: `Crypto deposit of $${latestDeposit.amount}`
-            })
-
-            await supabaseAdmin.from('notifications').insert({
-              user_id: user.id,
-              title: 'Deposit Confirmed',
-              message: `Your deposit of $${latestDeposit.amount} has been credited to your account.`,
-              type: 'deposit'
-            })
-
-            if (process.env.PUSHOVER_API_TOKEN) {
-              await fetch('https://api.pushover.net/1/messages.json', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  token: process.env.PUSHOVER_API_TOKEN,
-                  user: process.env.PUSHOVER_USER_KEY,
-                  title: '💰 New AltSignals Deposit',
-                  message: `${userRow.full_name} deposited $${latestDeposit.amount}`,
-                  priority: 1
-                })
-              })
-            }
-
-            const { data: updatedUser } = await supabaseAdmin
-              .from('users')
-              .select('*')
-              .eq('id', user.id)
-              .single()
-
-            return Response.json({ success: true, status: 'completed', user: updatedUser })
-          }
-        }
-      }
-
-      return Response.json({ success: true, status: latestDeposit.status })
-    }
-
-    // Deposit found by invoice_id
-    if (deposit.status === 'completed') {
-      const { data: updatedUser } = await supabaseAdmin
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
         .single()
-      return Response.json({ success: true, status: 'completed', user: updatedUser })
-    }
 
-    // Check NOWPayments for current status
-    try {
-      const nowRes = await fetch(`https://api.nowpayments.io/v1/invoice/${deposit.invoice_id}`, {
-        headers: { 'x-api-key': process.env.NOWPAYMENTS_API_KEY }
-      })
-
-      if (nowRes.ok) {
-        const nowData = await nowRes.json()
-        console.log('NOWPayments invoice check:', JSON.stringify(nowData))
-
-        if (nowData.payment_status === 'finished' || nowData.payment_status === 'confirmed' || nowData.status === 'finished') {
-          if (deposit.status === 'pending') {
-            const { data: userRow } = await supabaseAdmin
-              .from('users')
-              .select('*')
-              .eq('id', user.id)
-              .single()
-
-            await supabaseAdmin
-              .from('deposits')
-              .update({ status: 'completed' })
-              .eq('id', deposit.id)
-
-            await supabaseAdmin
-              .from('users')
-              .update({
-                deposit_balance: (userRow.deposit_balance || 0) + Number(deposit.amount),
-                total_deposited: (userRow.total_deposited || 0) + Number(deposit.amount)
-              })
-              .eq('id', user.id)
-
-            await supabaseAdmin.from('trading_history').insert({
-              user_id: user.id,
-              type: 'deposit',
-              amount: Number(deposit.amount),
-              description: `Crypto deposit of $${deposit.amount}`
-            })
-
-            await supabaseAdmin.from('notifications').insert({
-              user_id: user.id,
-              title: 'Deposit Confirmed',
-              message: `Your deposit of $${deposit.amount} has been credited to your account.`,
-              type: 'deposit'
-            })
-
-            if (process.env.PUSHOVER_API_TOKEN) {
-              await fetch('https://api.pushover.net/1/messages.json', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  token: process.env.PUSHOVER_API_TOKEN,
-                  user: process.env.PUSHOVER_USER_KEY,
-                  title: '💰 New AltSignals Deposit',
-                  message: `${userRow.full_name} deposited $${deposit.amount}`,
-                  priority: 1
-                })
-              })
-            }
-
-            const { data: updatedUser } = await supabaseAdmin
-              .from('users')
-              .select('*')
-              .eq('id', user.id)
-              .single()
-
-            return Response.json({ success: true, status: 'completed', user: updatedUser })
-          }
-        }
+      if (deposit && deposit.status !== 'completed') {
+        await creditDeposit(deposit)
+        return Response.json({ status: 'completed', credited: true })
       }
-    } catch (nowErr) {
-      console.error('NOWPayments check error:', nowErr)
+      return Response.json({ status: 'unknown' })
     }
 
-    return Response.json({ success: true, status: deposit.status })
+    const payment = await res.json()
+    const status = payment.payment_status
+
+    console.log('Payment status check:', payment_id, status)
+
+    if (status === 'finished' || status === 'confirmed' || status === 'partially_paid' || status === 'sending') {
+      const { data: deposit } = await supabaseAdmin
+        .from('deposits')
+        .select('*')
+        .eq('id', deposit_id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (!deposit) return Response.json({ status })
+      if (deposit.status === 'completed') {
+        return Response.json({ status: 'completed', already_processed: true })
+      }
+
+      await creditDeposit(deposit)
+      return Response.json({ status: 'completed', credited: true })
+    }
+
+    return Response.json({ status })
   } catch (error) {
-    console.error('Check deposit error:', error)
-    return Response.json({ error: 'Something went wrong' }, { status: 500 })
+    console.error('Check payment error:', error)
+    return Response.json({ status: 'unknown' })
+  }
+}
+
+async function creditDeposit(deposit) {
+  const { data: freshUser } = await supabaseAdmin
+    .from('users')
+    .select('deposit_balance, total_deposited, full_name')
+    .eq('id', deposit.user_id)
+    .single()
+
+  if (!freshUser) return
+
+  await supabaseAdmin
+    .from('deposits')
+    .update({ status: 'completed' })
+    .eq('id', deposit.id)
+
+  await supabaseAdmin
+    .from('users')
+    .update({
+      deposit_balance: (freshUser.deposit_balance || 0) + Number(deposit.amount),
+      total_deposited: (freshUser.total_deposited || 0) + Number(deposit.amount)
+    })
+    .eq('id', deposit.user_id)
+
+  await supabaseAdmin.from('trading_history').insert({
+    user_id: deposit.user_id,
+    type: 'deposit',
+    amount: Number(deposit.amount),
+    description: `Deposit of $${deposit.amount} via ${deposit.currency?.toUpperCase() || 'crypto'}`,
+    reference_id: deposit.id
+  })
+
+  await supabaseAdmin.from('notifications').insert({
+    user_id: deposit.user_id,
+    title: 'Deposit Confirmed',
+    message: `Your deposit of $${deposit.amount} has been confirmed and credited to your account.`,
+    type: 'deposit'
+  })
+
+  if (process.env.PUSHOVER_API_TOKEN) {
+    await fetch('https://api.pushover.net/1/messages.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: process.env.PUSHOVER_API_TOKEN,
+        user: process.env.PUSHOVER_USER_KEY,
+        title: '💰 New AltSignals Deposit',
+        message: `$${deposit.amount} deposit confirmed for ${freshUser.full_name}`,
+        priority: 1,
+        sound: 'cashregister'
+      })
+    })
   }
 }
