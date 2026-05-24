@@ -25,8 +25,14 @@ export default function DepositPage() {
   const [error, setError] = useState('')
   const [polling, setPolling] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [minDeposit, setMinDeposit] = useState(100)
 
   useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(d => { if (d.settings?.min_deposit) setMinDeposit(Number(d.settings.min_deposit)) })
+      .catch(() => {})
+
     const params = new URLSearchParams(window.location.search)
     if (params.get('status') === 'success') {
       const savedId = localStorage.getItem('as_invoice_id')
@@ -61,7 +67,7 @@ export default function DepositPage() {
   }
 
   async function handleDeposit() {
-    if (!amount || Number(amount) < 100) return setError('Minimum deposit is $100')
+    if (!amount || Number(amount) < minDeposit) return setError(`Minimum deposit is $${minDeposit}`)
     if (!currency) return setError('Please select a payment currency')
     setLoading(true)
     setError('')
@@ -93,6 +99,7 @@ export default function DepositPage() {
         .btn { width:100%; background:#00E5FF; border:none; color:#0A0A0F; padding:14px; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; cursor:pointer; font-family:'Inter',sans-serif; clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%); transition:background 0.3s; }
         .btn:hover { background:#33EEFF; }
         .btn:disabled { opacity:0.6; cursor:not-allowed; }
+        @keyframes spin { to{transform:rotate(360deg);} }
       `}</style>
 
       <div style={{ marginBottom:'28px' }}>
@@ -111,7 +118,6 @@ export default function DepositPage() {
       {polling && (
         <div style={{ background:'rgba(0,229,255,0.08)', border:'1px solid rgba(0,229,255,0.2)', padding:'20px', marginBottom:'24px', textAlign:'center' }}>
           <div style={{ width:'32px', height:'32px', border:'2px solid rgba(0,229,255,0.2)', borderTop:'2px solid #00E5FF', borderRadius:'50%', animation:'spin 1s linear infinite', margin:'0 auto 12px' }}></div>
-          <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
           <div style={{ fontSize:'13px', color:'#00E5FF' }}>Confirming your payment...</div>
         </div>
       )}
@@ -125,10 +131,10 @@ export default function DepositPage() {
           <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'8px' }}>Amount (USD)</div>
           <div style={{ position:'relative' }}>
             <span style={{ position:'absolute', left:'16px', top:'50%', transform:'translateY(-50%)', color:'#00E5FF', fontSize:'16px' }}>$</span>
-            <input className="dep-input" style={{ paddingLeft:'32px' }} type="number" placeholder="Min. $100" value={amount} onChange={e => { setAmount(e.target.value); setError('') }} />
+            <input className="dep-input" style={{ paddingLeft:'32px' }} type="number" placeholder={`Min. $${minDeposit}`} value={amount} onChange={e => { setAmount(e.target.value); setError('') }} />
           </div>
           <div style={{ display:'flex', gap:'8px', marginTop:'10px', flexWrap:'wrap' }}>
-            {[100, 500, 1000, 5000, 10000].map(v => (
+            {[minDeposit, 500, 1000, 5000, 10000].filter((v,i,a) => a.indexOf(v) === i).map(v => (
               <button key={v} className={`shortcut ${amount == v ? 'active' : ''}`} onClick={() => setAmount(String(v))}>
                 ${v.toLocaleString()}
               </button>
@@ -156,6 +162,7 @@ export default function DepositPage() {
       <div style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', padding:'20px', marginTop:'16px' }}>
         <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#00E5FF', marginBottom:'12px' }}>Payment Info</div>
         {[
+          `Minimum deposit is $${minDeposit}`,
           'Payments processed securely via NOWPayments',
           'Select your preferred cryptocurrency above',
           'You will be redirected to complete payment',
