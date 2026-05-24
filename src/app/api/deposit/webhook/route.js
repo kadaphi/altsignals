@@ -6,29 +6,49 @@ export async function POST(req) {
     const body = await req.text()
     const signature = req.headers.get('x-nowpayments-sig')
 
-    // Verify signature
     if (signature && process.env.NOWPAYMENTS_IPN_SECRET) {
       const hmac = crypto.createHmac('sha512', process.env.NOWPAYMENTS_IPN_SECRET.trim())
-      const sorted = JSON.stringify(JSON.parse(body), Object.keys(JSON.parse(body)).sort())
+      const parsed = JSON.parse(body)
+      const sorted = JSON.stringify(parsed, Object.keys(parsed).sort())
       hmac.update(sorted)
       const digest = hmac.digest('hex')
       if (digest !== signature) {
+        console.error('Invalid webhook signature')
         return Response.json({ error: 'Invalid signature' }, { status: 401 })
       }
     }
 
     const data = JSON.parse(body)
+    console.log('NOWPayments webhook received:', JSON.stringify(data))
 
     if (data.payment_status === 'finished' || data.payment_status === 'confirmed') {
-  const invoiceRef = data.order_id || data.invoice_id || String(data.payment_id)
+      // Try all possible ID fields NOWPayments might send
+      const possibleIds = [
+        String(data.invoice_id || ''),
+        String(data.order_id || ''),
+        String(data.payment_id || ''),
+      ].filter(Boolean)
 
-  const { data: deposit } = await supabaseAdmin
-    .from('deposits')
-    .select('*, users(*)')
-    .or(`invoice_id.eq.${invoiceRef},invoice_id.eq.${String(data.payment_id)}`)
-    .maybeSingle()
+      console.log('Looking for deposit with IDs:', possibleIds)
 
-      if (deposit && deposit.status === 'pending') {
+      let deposit = null
+
+      for (const id of possibleIds) {
+        const { data: found } = await supabaseAdmin
+          .from('deposits')
+          .select('*, users(*)')
+          .eq('invoice_id', id)
+          .maybeSingle()
+
+        if (found) { deposit = found; break }
+      }
+
+      if (!deposit) {
+        console.error('Deposit not found for IDs:', possibleIds)
+        return Response.json({ success: true })
+      }
+
+      if (deposit.status === 'pending') {
         await supabaseAdmin
           .from('deposits')
           .update({ status: 'completed' })
@@ -37,15 +57,15 @@ export async function POST(req) {
         await supabaseAdmin
           .from('users')
           .update({
-            deposit_balance: (deposit.users.deposit_balance || 0) + deposit.amount,
-            total_deposited: (deposit.users.total_deposited || 0) + deposit.amount
+            deposit_balance: (deposit.users.deposit_balance || 0) + Number(deposit.amount),
+            total_deposited: (deposit.users.total_deposited || 0) + Number(deposit.amount)
           })
           .eq('id', deposit.user_id)
 
         await supabaseAdmin.from('trading_history').insert({
           user_id: deposit.user_id,
           type: 'deposit',
-          amount: deposit.amount,
+          amount: Number(deposit.amount),
           description: `Crypto deposit of $${deposit.amount}`
         })
 
@@ -69,6 +89,10 @@ export async function POST(req) {
             })
           })
         }
+
+        console.log('Deposit credited successfully:', deposit.id)
+      } else {
+        console.log('Deposit already processed:', deposit.id)
       }
     }
 
