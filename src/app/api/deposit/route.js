@@ -8,13 +8,13 @@ export async function POST(req) {
 
     const { amount, currency } = await req.json()
 
-const { data: minDepositSetting } = await supabaseAdmin
+const { data: settingsRow } = await supabaseAdmin
   .from('settings')
-  .select('value')
-  .eq('key', 'min_deposit')
+  .select('min_deposit')
+  .limit(1)
   .single()
 
-const minDeposit = Number(minDepositSetting?.value || 100)
+const minDeposit = Number(settingsRow?.min_deposit || 100)
 
 if (!amount || amount < minDeposit) {
   return Response.json({ error: `Minimum deposit is $${minDeposit}` }, { status: 400 })

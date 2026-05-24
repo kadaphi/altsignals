@@ -20,11 +20,13 @@ export async function POST(req) {
     const data = JSON.parse(body)
 
     if (data.payment_status === 'finished' || data.payment_status === 'confirmed') {
-      const { data: deposit } = await supabaseAdmin
-        .from('deposits')
-        .select('*, users(*)')
-        .eq('invoice_id', data.order_id)
-        .single()
+  const invoiceRef = data.order_id || data.invoice_id || String(data.payment_id)
+
+  const { data: deposit } = await supabaseAdmin
+    .from('deposits')
+    .select('*, users(*)')
+    .or(`invoice_id.eq.${invoiceRef},invoice_id.eq.${String(data.payment_id)}`)
+    .maybeSingle()
 
       if (deposit && deposit.status === 'pending') {
         await supabaseAdmin

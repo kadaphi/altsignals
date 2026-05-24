@@ -29,9 +29,9 @@ export default function DepositPage() {
 
   useEffect(() => {
     fetch('/api/settings')
-      .then(r => r.json())
-      .then(d => { if (d.settings?.min_deposit) setMinDeposit(Number(d.settings.min_deposit)) })
-      .catch(() => {})
+    .then(r => r.json())
+    .then(d => { if (d.settings?.min_deposit) setMinDeposit(Number(d.settings.min_deposit)) })
+    .catch(() => {})
 
     const params = new URLSearchParams(window.location.search)
     if (params.get('status') === 'success') {
