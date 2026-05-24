@@ -100,3 +100,20 @@ export async function POST(req) {
     return Response.json({ error: 'Something went wrong' }, { status: 500 })
   }
 }
+export async function PATCH(req) {
+  try {
+    const user = await getUserFromRequest(req)
+    if (!user?.is_admin) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { challenge_id, entry_fee } = await req.json()
+
+    await supabaseAdmin
+      .from('challenges')
+      .update({ entry_fee })
+      .eq('id', challenge_id)
+
+    return Response.json({ success: true })
+  } catch {
+    return Response.json({ error: 'Something went wrong' }, { status: 500 })
+  }
+}

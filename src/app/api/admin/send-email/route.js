@@ -9,7 +9,7 @@ export async function POST(req) {
     const user = await getUserFromRequest(req)
     if (!user?.is_admin) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { user_id, subject, message } = await req.json()
+    const { user_id, subject, message, from_alias } = await req.json()
 
     const { data: targetUser } = await supabaseAdmin
       .from('users')
@@ -19,8 +19,17 @@ export async function POST(req) {
 
     if (!targetUser) return Response.json({ error: 'User not found' }, { status: 404 })
 
+    const fromMap = {
+      support: 'AltSignals Support <support@altsignals.finance>',
+      noreply: 'AltSignals <noreply@altsignals.finance>',
+      verification: 'AltSignals <verification@altsignals.finance>',
+      invest: 'AltSignals Investments <invest@altsignals.finance>',
+      compliance: 'AltSignals Compliance <compliance@altsignals.finance>',
+    }
+    const fromAddress = fromMap[from_alias] || fromMap.support
+
     await resend.emails.send({
-      from: 'AltSignals <noreply@altsignals.finance>',
+      from: fromAddress,
       to: targetUser.email,
       subject,
       html: `
@@ -29,16 +38,17 @@ export async function POST(req) {
             <span style="font-size:22px;font-weight:700;letter-spacing:2px;color:#00E5FF;">ALT<span style="color:#ffffff">SIGNALS</span></span>
           </div>
           <h1 style="font-size:24px;font-weight:600;margin-bottom:16px;color:#ffffff;">Hi ${targetUser.full_name},</h1>
-          <div style="font-size:14px;color:#8A8E99;line-height:1.8;">${message}</div>
+          <div style="font-size:14px;color:#8A8E99;line-height:1.8;">${message.replace(/\n/g, '<br>')}</div>
           <div style="margin-top:32px;padding-top:32px;border-top:1px solid rgba(0,229,255,0.1);font-size:11px;color:rgba(138,142,153,0.5);">
-            AltSignals Support Team
+            AltSignals Support Team · altsignals.finance
           </div>
         </div>
       `
     })
 
     return Response.json({ success: true })
-  } catch {
+  } catch (error) {
+    console.error('Send email error:', error)
     return Response.json({ error: 'Something went wrong' }, { status: 500 })
   }
 }
