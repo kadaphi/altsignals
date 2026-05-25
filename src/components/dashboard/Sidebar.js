@@ -77,7 +77,7 @@ export default function DashboardSidebar() {
       )}
 
       {/* Nav Items — flex:1 so it fills space, user info stays at bottom */}
-      <nav style={{ flex: 1, padding:'8px 0', overflowY: 'auto' }}>
+      <nav style={{ flex: 1, padding:'8px 0' }}>
         {navItems.map((item) => {
           const isActive = pathname === item.path
           return (

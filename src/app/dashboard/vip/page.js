@@ -25,6 +25,7 @@ export default function VIPPage() {
         const data = await res.json()
         setPlans(data.plans || [])
         setSubscription(data.subscription || null)
+        if (data.expired) setError('Your VIP membership has expired. Please renew below.')
       }
     } catch {}
     finally { setLoading(false) }
@@ -54,37 +55,42 @@ export default function VIPPage() {
   const planDetails = {
     'Monthly': {
       color: '#00E5FF',
-      badge: 'STARTER',
+      badge: 'MONTHLY',
+      duration: 'per 30 days',
       features: [
-        'Access to VIP Telegram channel',
-        'Daily trading signals',
-        'Basic market analysis',
-        'Community support',
-        'Renews every 30 days',
+        'VIP Futures Signals',
+        '95% Win Rate Signals',
+        '24/7 Trading Support',
+        'Live Trading Sessions',
+        'Members Only Community',
+        'Daily Market Analysis',
       ]
     },
     'Lifetime': {
       color: '#FFD700',
-      badge: 'LIFETIME',
+      badge: '6 MONTHS',
+      duration: 'per 180 days',
       features: [
-        'Permanent VIP Telegram access',
-        'Daily & premium trading signals',
-        'Advanced market analysis',
-        'Priority support',
-        'All future updates included',
-        'One-time payment — never pay again',
+        'VIP Futures Signals',
+        '95% Win Rate Signals',
+        '24/7 Trading Support',
+        'Lifetime Access',
+        'All Future Updates',
+        'Members Only Community',
       ]
     },
     'Premium': {
       color: '#00FF88',
-      badge: 'PREMIUM',
+      badge: 'LIFETIME',
+      duration: 'one-time payment',
       features: [
-        'Everything in Lifetime',
-        'Private 1-on-1 mentorship sessions',
-        'Exclusive premium signal group',
-        'Direct access to our analysts',
-        'Custom portfolio review',
-        'VIP-only trade alerts & strategies',
+        'All Monthly VIP Benefits',
+        '1:1 Private Mentorship',
+        'Exclusive Private Signals',
+        'Copy Trading Access',
+        'Priority Support',
+        'Strategy Deep Dives',
+        'Portfolio Review Sessions',
       ]
     }
   }
@@ -100,7 +106,7 @@ export default function VIPPage() {
     <div style={{ maxWidth:'1000px' }}>
       <style>{`
         @keyframes spin{to{transform:rotate(360deg);}}
-        .vip-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+        .vip-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
         @media(max-width:768px){ .vip-grid{ grid-template-columns:1fr !important; } }
       `}</style>
 
@@ -136,9 +142,22 @@ export default function VIPPage() {
           <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'2px', background:'linear-gradient(90deg,#00FF88,transparent)' }}></div>
           <div style={{ fontSize:'9px', fontWeight:'700', letterSpacing:'3px', textTransform:'uppercase', color:'#00FF88', marginBottom:'12px' }}>● ACTIVE VIP MEMBERSHIP</div>
           <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'24px', fontWeight:'700', color:'#E8E4DC', marginBottom:'8px' }}>{subscription.vip_plans?.name}</div>
-          {subscription.ends_at && (
-            <div style={{ fontSize:'12px', color:'#8A8E99', marginBottom:'16px' }}>Expires: {new Date(subscription.ends_at).toLocaleDateString()}</div>
-          )}
+          {subscription.ends_at && (() => {
+            const daysLeft = Math.ceil((new Date(subscription.ends_at) - new Date()) / (1000 * 60 * 60 * 24))
+            return (
+              <div style={{ marginBottom:'16px' }}>
+                <div style={{ fontSize:'12px', color: daysLeft <= 10 ? '#FF4444' : '#8A8E99', marginBottom:'8px' }}>
+                  {daysLeft <= 0 ? '❌ Expired' : daysLeft <= 10 ? `⚠️ Expires in ${daysLeft} days` : `Expires: ${new Date(subscription.ends_at).toLocaleDateString()}`}
+                </div>
+                {daysLeft <= 10 && daysLeft > 0 && (
+                  <button onClick={() => { setSubscription(null); window.scrollTo(0,0) }}
+                    style={{ background:'rgba(255,68,68,0.1)', border:'1px solid rgba(255,68,68,0.3)', color:'#FF4444', padding:'10px 20px', fontSize:'10px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+                    Renew Subscription →
+                  </button>
+                )}
+              </div>
+            )
+          })()}
           {!subscription.ends_at && (
             <div style={{ fontSize:'12px', color:'#00FF88', marginBottom:'16px' }}>✓ Lifetime access — never expires</div>
           )}
@@ -152,37 +171,63 @@ export default function VIPPage() {
       ) : (
         <div className="vip-grid">
           {plans.map((plan) => {
-            const details = planDetails[plan.name] || { color:'#00E5FF', badge:plan.name.toUpperCase(), features:[] }
-            const isLifetime = !plan.duration_days
+            const details = planDetails[plan.name] || {
+              color: '#00E5FF',
+              badge: plan.name.toUpperCase(),
+              duration: plan.duration_days ? `per ${plan.duration_days} days` : 'one-time payment',
+              features: []
+            }
             const isPremium = plan.name === 'Premium'
+            const isLifetime = plan.name === 'Lifetime'
+
             return (
-              <div key={plan.id} style={{ background:'#0F0F1A', border:`1px solid ${isPremium ? 'rgba(0,255,136,0.2)' : isLifetime ? 'rgba(255,215,0,0.2)' : 'rgba(0,229,255,0.08)'}`, padding:'32px', position:'relative', display:'flex', flexDirection:'column' }}>
-                <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'2px', background:`linear-gradient(90deg,${details.color},transparent)` }}></div>
+              <div key={plan.id} style={{
+                background:'#0F0F1A',
+                border:`1px solid ${isPremium ? 'rgba(0,255,136,0.25)' : isLifetime ? 'rgba(255,215,0,0.25)' : 'rgba(0,229,255,0.12)'}`,
+                padding:'32px',
+                position:'relative',
+                display:'flex',
+                flexDirection:'column',
+                transition:'transform 0.2s',
+              }}>
+                <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'3px', background:`linear-gradient(90deg,${details.color},transparent)` }}></div>
 
                 {isPremium && (
-                  <div style={{ position:'absolute', top:'16px', right:'16px', background:'rgba(0,255,136,0.15)', border:'1px solid rgba(0,255,136,0.3)', color:'#00FF88', fontSize:'8px', fontWeight:'700', letterSpacing:'2px', padding:'4px 8px' }}>BEST VALUE</div>
+                  <div style={{ position:'absolute', top:'16px', right:'16px', background:'rgba(0,255,136,0.12)', border:'1px solid rgba(0,255,136,0.3)', color:'#00FF88', fontSize:'8px', fontWeight:'700', letterSpacing:'2px', padding:'4px 10px' }}>BEST VALUE</div>
                 )}
-                {isLifetime && !isPremium && (
-                  <div style={{ position:'absolute', top:'16px', right:'16px', background:'rgba(255,215,0,0.15)', border:'1px solid rgba(255,215,0,0.3)', color:'#FFD700', fontSize:'8px', fontWeight:'700', letterSpacing:'2px', padding:'4px 8px' }}>POPULAR</div>
+                {isLifetime && (
+                  <div style={{ position:'absolute', top:'16px', right:'16px', background:'rgba(255,215,0,0.12)', border:'1px solid rgba(255,215,0,0.3)', color:'#FFD700', fontSize:'8px', fontWeight:'700', letterSpacing:'2px', padding:'4px 10px' }}>POPULAR</div>
                 )}
 
-                <div style={{ fontSize:'9px', fontWeight:'700', letterSpacing:'3px', textTransform:'uppercase', color:details.color, marginBottom:'8px' }}>{details.badge}</div>
-                <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'36px', fontWeight:'700', color:'#E8E4DC', marginBottom:'4px' }}>${Number(plan.price).toLocaleString()}</div>
-                <div style={{ fontSize:'11px', color:'#8A8E99', marginBottom:'24px' }}>
-                  {plan.duration_days ? `per ${plan.duration_days} days` : 'one-time payment'}
+                <div style={{ fontSize:'9px', fontWeight:'700', letterSpacing:'3px', textTransform:'uppercase', color:details.color, marginBottom:'12px' }}>{details.badge}</div>
+
+                <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'42px', fontWeight:'700', color:'#E8E4DC', lineHeight:1, marginBottom:'6px' }}>
+                  ${Number(plan.price).toLocaleString()}
                 </div>
+                <div style={{ fontSize:'11px', color:'#8A8E99', marginBottom:'24px', letterSpacing:'0.5px' }}>{details.duration}</div>
 
-                <div style={{ flex:1, marginBottom:'24px' }}>
+                <div style={{ flex:1, marginBottom:'28px', borderTop:`1px solid rgba(${isPremium ? '0,255,136' : isLifetime ? '255,215,0' : '0,229,255'},0.1)`, paddingTop:'20px' }}>
                   {details.features.map((f, i) => (
-                    <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:'8px', marginBottom:'10px' }}>
-                      <span style={{ color:details.color, fontSize:'12px', flexShrink:0, marginTop:'1px' }}>✓</span>
-                      <span style={{ fontSize:'12px', color:'#8A8E99', lineHeight:'1.5' }}>{f}</span>
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>
+                      <div style={{ width:'18px', height:'18px', borderRadius:'50%', background:`rgba(${isPremium ? '0,255,136' : isLifetime ? '255,215,0' : '0,229,255'},0.1)`, border:`1px solid ${details.color}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        <span style={{ color:details.color, fontSize:'10px', fontWeight:'700' }}>✓</span>
+                      </div>
+                      <span style={{ fontSize:'12px', color:'#C8C4BC', lineHeight:'1.4' }}>{f}</span>
                     </div>
                   ))}
                 </div>
 
                 <button onClick={() => handleSubscribe(plan.id)} disabled={purchasing !== null}
-                  style={{ background: purchasing === plan.id ? `rgba(0,229,255,0.3)` : details.color, border:'none', color:'#0A0A0F', padding:'14px', fontSize:'10px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor: purchasing !== null ? 'not-allowed' : 'pointer', fontFamily:'Inter,sans-serif', clipPath:'polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)', opacity: purchasing !== null && purchasing !== plan.id ? 0.5 : 1 }}>
+                  style={{
+                    background: purchasing === plan.id ? `rgba(0,229,255,0.3)` : details.color,
+                    border:'none', color:'#0A0A0F', padding:'15px',
+                    fontSize:'11px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase',
+                    cursor: purchasing !== null ? 'not-allowed' : 'pointer',
+                    fontFamily:'Inter,sans-serif',
+                    clipPath:'polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)',
+                    opacity: purchasing !== null && purchasing !== plan.id ? 0.5 : 1,
+                    transition:'opacity 0.2s'
+                  }}>
                   {purchasing === plan.id ? 'Processing...' : `Get ${plan.name} →`}
                 </button>
               </div>
