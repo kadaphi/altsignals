@@ -35,7 +35,6 @@ export default function DashboardSidebar() {
       transition: 'width 0.3s ease',
       flexShrink: 0,
       overflowX: 'hidden',
-      overflowY: 'auto',
     }}>
       {/* Logo */}
       <div style={{
@@ -67,7 +66,7 @@ export default function DashboardSidebar() {
         <button onClick={() => setCollapsed(false)} style={{ background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'16px', padding:'12px', textAlign:'center', flexShrink:0 }}>›</button>
       )}
 
-      {/* Nav — no flex:1, no overflowY, sidebar scrolls as a whole */}
+      {/* Nav */}
       <nav style={{ padding: '8px 0' }}>
         {navItems.map((item) => {
           const isActive = pathname === item.path
@@ -96,7 +95,7 @@ export default function DashboardSidebar() {
         })}
       </nav>
 
-      {/* User info — sits directly below nav, no gap */}
+      {/* User info */}
       <div style={{
         padding: collapsed && !mobile ? '12px 0' : '12px 20px',
         borderTop:'1px solid rgba(0,229,255,0.08)',
@@ -160,7 +159,8 @@ export default function DashboardSidebar() {
       )}
 
       {mobileOpen && (
-        <div style={{ position:'fixed', top:0, left:0, bottom:0, zIndex:160, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
+        // 👇 background added here — this is what was showing through
+        <div style={{ position:'fixed', top:0, left:0, bottom:0, zIndex:160, overflowY:'auto', WebkitOverflowScrolling:'touch', background:'#0F0F1A' }}>
           <SidebarContent mobile={true} onNavigate={() => setMobileOpen(false)} />
         </div>
       )}
