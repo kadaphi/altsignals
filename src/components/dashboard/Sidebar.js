@@ -27,7 +27,7 @@ export default function DashboardSidebar() {
   const SidebarContent = ({ onNavigate, mobile = false }) => (
     <div style={{
       width: collapsed && !mobile ? '72px' : '240px',
-      height: '100vh',
+      minHeight: '100vh',
       background: '#0F0F1A',
       borderRight: '1px solid rgba(0,229,255,0.08)',
       display: 'flex',
