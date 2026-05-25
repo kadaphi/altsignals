@@ -45,8 +45,9 @@ export default function DashboardSidebar() {
         borderBottom: '1px solid rgba(0,229,255,0.08)',
         display: 'flex', alignItems: 'center',
         justifyContent: collapsed && !mobile ? 'center' : 'space-between',
-        minHeight: '72px',
-        flexShrink: 0
+        minHeight: mobile ? '88px' : '72px',
+        flexShrink: 0,
+        paddingTop: mobile ? '32px' : undefined,
       }}>
         {(!collapsed || mobile) && (
           <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'16px', fontWeight:'700', letterSpacing:'1px', color:'#E8E4DC' }}>
@@ -60,7 +61,7 @@ export default function DashboardSidebar() {
           <button onClick={() => setCollapsed(true)} style={{ background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'16px', padding:'4px' }}>‹</button>
         )}
         {mobile && (
-          <button onClick={() => onNavigate && setMobileOpen(false)} style={{ background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'22px', padding:'4px', lineHeight:1 }}>×</button>
+          <button onClick={() => setMobileOpen(false)} style={{ background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'22px', padding:'4px', lineHeight:1 }}>×</button>
         )}
       </div>
 
@@ -69,7 +70,7 @@ export default function DashboardSidebar() {
       )}
 
       {/* Nav Items */}
-      <nav style={{ flex:1, padding:'12px 0' }}>
+      <nav style={{ flex:1, padding:'12px 0', overflowY:'auto' }}>
         {navItems.map((item) => {
           const isActive = pathname === item.path
           return (
@@ -97,16 +98,16 @@ export default function DashboardSidebar() {
       </nav>
 
       {/* User Info */}
-      <div style={{ padding: collapsed && !mobile ? '16px 0' : '16px 20px', borderTop:'1px solid rgba(0,229,255,0.08)', flexShrink:0 }}>
+      <div style={{ padding: collapsed && !mobile ? '10px 0' : '10px 20px', borderTop:'1px solid rgba(0,229,255,0.08)', flexShrink:0 }}>
         {(!collapsed || mobile) && (
-          <div style={{ marginBottom:'12px' }}>
-            <div style={{ fontSize:'11px', fontWeight:'500', color:'#E8E4DC', marginBottom:'2px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.full_name}</div>
+          <div style={{ marginBottom:'4px' }}>
+            <div style={{ fontSize:'11px', fontWeight:'500', color:'#E8E4DC', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.full_name}</div>
             <div style={{ fontSize:'9px', letterSpacing:'1.5px', textTransform:'uppercase', color:'#00E5FF' }}>{user?.account_level}</div>
           </div>
         )}
         <button
           onClick={logout}
-          style={{ width:'100%', display:'flex', alignItems:'center', gap:'8px', justifyContent: collapsed && !mobile ? 'center' : 'flex-start', background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'11px', fontWeight:'500', letterSpacing:'1px', padding:'8px 0', transition:'color 0.2s', fontFamily:'Inter, sans-serif' }}
+          style={{ width:'100%', display:'flex', alignItems:'center', gap:'8px', justifyContent: collapsed && !mobile ? 'center' : 'flex-start', background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'11px', fontWeight:'500', letterSpacing:'1px', padding:'6px 0', transition:'color 0.2s', fontFamily:'Inter, sans-serif' }}
           onMouseEnter={e => e.currentTarget.style.color='#FF4444'}
           onMouseLeave={e => e.currentTarget.style.color='#8A8E99'}
         >
@@ -132,12 +133,12 @@ export default function DashboardSidebar() {
         <SidebarContent />
       </div>
 
-      {/* Hamburger — top RIGHT to avoid logo overlap */}
+      {/* Hamburger — top left */}
       <button
         className="mobile-menu-btn"
         onClick={() => setMobileOpen(true)}
         style={{
-          position: 'fixed', top: '14px', right: '16px',
+          position: 'fixed', top: '14px', left: '16px',
           zIndex: 200, background: '#0F0F1A',
           border: '1px solid rgba(0,229,255,0.2)',
           width: '44px', height: '44px',
@@ -150,7 +151,7 @@ export default function DashboardSidebar() {
         <span style={{ width:'20px', height:'2px', background:'#00E5FF', display:'block' }}></span>
       </button>
 
-      {/* Overlay — tap to close */}
+      {/* Overlay — tap anywhere to close */}
       {mobileOpen && (
         <div
           style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:150 }}
@@ -158,7 +159,7 @@ export default function DashboardSidebar() {
         />
       )}
 
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar drawer */}
       {mobileOpen && (
         <div style={{
           position: 'fixed', top:0, left:0, bottom:0,

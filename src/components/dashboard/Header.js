@@ -79,7 +79,7 @@ export default function DashboardHeader() {
       flexShrink: 0,
       gap: '16px'
     }}>
-      <div style={{ paddingLeft: '60px' }} className="mobile-greeting">
+      <div style={{ paddingLeft: '72px' }} className="mobile-greeting">
         <div style={{ fontSize: '11px', color: '#8A8E99', marginBottom: '2px' }}>{greeting},</div>
         <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: '18px', fontWeight: '600', color: '#E8E4DC' }}>{user?.full_name?.split(' ')[0]}</div>
       </div>
