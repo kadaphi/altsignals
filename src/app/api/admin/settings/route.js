@@ -3,9 +3,6 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(req) {
   try {
-    const user = await getUserFromRequest(req)
-    if (!user?.is_admin) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
     const { data: settings } = await supabaseAdmin
       .from('settings')
       .select('*')
@@ -22,11 +19,24 @@ export async function PUT(req) {
     const user = await getUserFromRequest(req)
     if (!user?.is_admin) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const updates = await req.json()
+    const body = await req.json()
+
+    const allowed = [
+      'min_deposit', 'min_withdrawal',
+      'coaching_fee', 'coaching_link', 'coaching_description',
+      'chat_enabled', 'maintenance_mode',
+      'kyc_fee', 'kyc_fee_address', 'kyc_fee_reason'
+    ]
+
+    const updates = {}
+    for (const key of allowed) {
+      if (body[key] !== undefined) updates[key] = body[key]
+    }
 
     const { data: existing } = await supabaseAdmin
       .from('settings')
       .select('id')
+      .limit(1)
       .single()
 
     if (existing) {

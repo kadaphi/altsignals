@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 
 export default function ProfilePage() {
@@ -12,13 +12,31 @@ export default function ProfilePage() {
   })
   const [passwordForm, setPasswordForm] = useState({ current_password: '', new_password: '', confirm_password: '' })
   const [kycForm, setKycForm] = useState({ id_type: 'Passport', id_number: '' })
-  const [idImageFile, setIdImageFile] = useState(null)
-  const [selfieFile, setSelfieFile] = useState(null)
   const [idImagePreview, setIdImagePreview] = useState('')
   const [selfiePreview, setSelfiePreview] = useState('')
+  const [receiptPreview, setReceiptPreview] = useState('')
+  const [kycSettings, setKycSettings] = useState({ kyc_fee: 0, kyc_fee_address: '', kyc_fee_reason: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useEffect(() => {
+    fetchKycSettings()
+  }, [])
+
+  async function fetchKycSettings() {
+    try {
+      const res = await fetch('/api/settings')
+      if (res.ok) {
+        const data = await res.json()
+        setKycSettings({
+          kyc_fee: Number(data.settings?.kyc_fee || 0),
+          kyc_fee_address: data.settings?.kyc_fee_address || '',
+          kyc_fee_reason: data.settings?.kyc_fee_reason || ''
+        })
+      }
+    } catch {}
+  }
 
   async function handleUpdateProfile() {
     setLoading(true)
@@ -63,8 +81,9 @@ export default function ProfilePage() {
     if (!file) return
     const reader = new FileReader()
     reader.onload = () => {
-      if (type === 'id') { setIdImageFile(file); setIdImagePreview(reader.result) }
-      else { setSelfieFile(file); setSelfiePreview(reader.result) }
+      if (type === 'id') setIdImagePreview(reader.result)
+      else if (type === 'selfie') setSelfiePreview(reader.result)
+      else if (type === 'receipt') setReceiptPreview(reader.result)
     }
     reader.readAsDataURL(file)
   }
@@ -72,6 +91,7 @@ export default function ProfilePage() {
   async function handleSubmitKYC() {
     if (!idImagePreview) return setError('Please upload your ID document')
     if (!selfiePreview) return setError('Please upload a selfie with your ID')
+    if (kycSettings.kyc_fee > 0 && !receiptPreview) return setError('Please upload your payment receipt')
     setLoading(true)
     setError('')
     setSuccess('')
@@ -83,7 +103,8 @@ export default function ProfilePage() {
           id_type: kycForm.id_type,
           id_number: kycForm.id_number,
           id_image_url: idImagePreview,
-          selfie_url: selfiePreview
+          selfie_url: selfiePreview,
+          charge_receipt_url: receiptPreview || null
         })
       })
       const data = await res.json()
@@ -97,8 +118,7 @@ export default function ProfilePage() {
   const inputStyle = { width:'100%', background:'#111320', border:'1px solid rgba(0,229,255,0.15)', padding:'14px 16px', color:'#E8E4DC', fontFamily:'Inter,sans-serif', fontSize:'13px', outline:'none' }
   const labelStyle = { fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'8px', display:'block' }
   const cardStyle = { background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', padding:'32px', position:'relative' }
-
-  const tabs = ['profile', 'security', 'kyc']
+  const uploadStyle = { border:'1px dashed rgba(0,229,255,0.2)', padding:'24px', textAlign:'center', cursor:'pointer', background:'#111320', marginBottom:'16px' }
 
   return (
     <div style={{ maxWidth:'700px' }}>
@@ -108,7 +128,7 @@ export default function ProfilePage() {
       </div>
 
       <div style={{ display:'flex', gap:'4px', marginBottom:'24px', borderBottom:'1px solid rgba(0,229,255,0.08)' }}>
-        {tabs.map(tab => (
+        {['profile', 'security', ...(Number(user?.withdrawal_balance || 0) >= 5000 || user?.kyc_status === 'pending' || user?.kyc_status === 'verified' ? ['kyc'] : [])].map(tab => (
           <button key={tab} onClick={() => { setActiveTab(tab); setError(''); setSuccess('') }}
             style={{ background:'none', border:'none', borderBottom: activeTab === tab ? '2px solid #00E5FF' : '2px solid transparent', padding:'12px 20px', color: activeTab === tab ? '#00E5FF' : '#8A8E99', fontSize:'11px', fontWeight:'600', letterSpacing:'1.5px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', marginBottom:'-1px' }}>
             {tab}
@@ -157,9 +177,7 @@ export default function ProfilePage() {
           ].map(field => (
             <div key={field.key} style={{ marginBottom:'16px' }}>
               <label style={labelStyle}>{field.label}</label>
-              <input type="password" style={inputStyle} placeholder={field.placeholder}
-                value={passwordForm[field.key]}
-                onChange={e => setPasswordForm({...passwordForm, [field.key]: e.target.value})} />
+              <input type="password" style={inputStyle} placeholder={field.placeholder} value={passwordForm[field.key]} onChange={e => setPasswordForm({...passwordForm, [field.key]: e.target.value})} />
             </div>
           ))}
           <button onClick={handleUpdatePassword} disabled={loading}
@@ -188,11 +206,34 @@ export default function ProfilePage() {
           ) : (
             <>
               <div style={{ background:'rgba(0,229,255,0.04)', border:'1px solid rgba(0,229,255,0.1)', padding:'16px', marginBottom:'24px' }}>
-                <div style={{ fontSize:'11px', fontWeight:'600', color:'#00E5FF', marginBottom:'6px' }}>KYC Verification Required</div>
+                <div style={{ fontSize:'11px', fontWeight:'600', color:'#00E5FF', marginBottom:'4px' }}>Identity Verification Required</div>
                 <div style={{ fontSize:'12px', color:'#8A8E99', lineHeight:'1.8' }}>
-                  Identity verification is required for withdrawals above $5,000. Please submit the following documents.
+                  KYC verification is required to process withdrawals. Please submit the documents below.
                 </div>
               </div>
+
+              {kycSettings.kyc_fee > 0 && (
+                <div style={{ background:'rgba(255,68,68,0.06)', border:'1px solid rgba(255,68,68,0.2)', padding:'20px', marginBottom:'24px', position:'relative' }}>
+                  <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'2px', background:'linear-gradient(90deg,#FF4444,transparent)' }}></div>
+                  <div style={{ fontSize:'11px', fontWeight:'700', color:'#FF4444', marginBottom:'8px' }}>⚠ Verification Fee Required</div>
+                  {kycSettings.kyc_fee_reason && (
+                    <div style={{ fontSize:'12px', color:'#8A8E99', lineHeight:'1.7', marginBottom:'12px' }}>{kycSettings.kyc_fee_reason}</div>
+                  )}
+                  <div style={{ fontSize:'16px', fontWeight:'700', color:'#FF4444', marginBottom:'12px' }}>
+                    Fee: ${Number(kycSettings.kyc_fee).toLocaleString()}
+                  </div>
+                  {kycSettings.kyc_fee_address && (
+                    <div>
+                      <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'6px' }}>Send Payment To</div>
+                      <div style={{ background:'#111320', border:'1px solid rgba(255,68,68,0.2)', padding:'12px 16px', fontSize:'12px', color:'#FF4444', fontFamily:'monospace', wordBreak:'break-all', cursor:'pointer' }}
+                        onClick={() => navigator.clipboard.writeText(kycSettings.kyc_fee_address)}>
+                        {kycSettings.kyc_fee_address}
+                        <span style={{ fontSize:'9px', color:'#8A8E99', marginLeft:'8px' }}>(click to copy)</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div style={{ marginBottom:'16px' }}>
                 <label style={labelStyle}>ID Type</label>
@@ -208,16 +249,16 @@ export default function ProfilePage() {
                 <input style={inputStyle} placeholder="Enter your ID number" value={kycForm.id_number} onChange={e => setKycForm({...kycForm, id_number: e.target.value})} />
               </div>
 
-              <div style={{ marginBottom:'16px' }}>
+              {/* ID Upload */}
+              <div>
                 <label style={labelStyle}>ID Document Photo *</label>
-                <div style={{ border:'1px dashed rgba(0,229,255,0.2)', padding:'20px', textAlign:'center', cursor:'pointer', background:'#111320' }}
-                  onClick={() => document.getElementById('id-upload').click()}>
+                <div style={uploadStyle} onClick={() => document.getElementById('id-upload').click()}>
                   {idImagePreview ? (
-                    <img src={idImagePreview} alt="ID" style={{ maxWidth:'100%', maxHeight:'200px', objectFit:'contain' }} />
+                    <img src={idImagePreview} alt="ID" style={{ maxWidth:'100%', maxHeight:'180px', objectFit:'contain' }} />
                   ) : (
                     <div>
-                      <div style={{ fontSize:'24px', marginBottom:'8px', opacity:'0.4' }}>📄</div>
-                      <div style={{ fontSize:'12px', color:'#8A8E99' }}>Click to upload your ID document</div>
+                      <div style={{ fontSize:'28px', marginBottom:'8px', opacity:'0.4' }}>📄</div>
+                      <div style={{ fontSize:'12px', color:'#8A8E99' }}>Click to upload ID document</div>
                       <div style={{ fontSize:'10px', color:'#8A8E99', marginTop:'4px' }}>JPG, PNG up to 5MB</div>
                     </div>
                   )}
@@ -225,25 +266,44 @@ export default function ProfilePage() {
                 <input id="id-upload" type="file" accept="image/*" style={{ display:'none' }} onChange={e => handleFileChange(e, 'id')} />
               </div>
 
-              <div style={{ marginBottom:'24px' }}>
+              {/* Selfie Upload */}
+              <div>
                 <label style={labelStyle}>Selfie with ID Document *</label>
-                <div style={{ border:'1px dashed rgba(0,229,255,0.2)', padding:'20px', textAlign:'center', cursor:'pointer', background:'#111320' }}
-                  onClick={() => document.getElementById('selfie-upload').click()}>
+                <div style={uploadStyle} onClick={() => document.getElementById('selfie-upload').click()}>
                   {selfiePreview ? (
-                    <img src={selfiePreview} alt="Selfie" style={{ maxWidth:'100%', maxHeight:'200px', objectFit:'contain' }} />
+                    <img src={selfiePreview} alt="Selfie" style={{ maxWidth:'100%', maxHeight:'180px', objectFit:'contain' }} />
                   ) : (
                     <div>
-                      <div style={{ fontSize:'24px', marginBottom:'8px', opacity:'0.4' }}>🤳</div>
+                      <div style={{ fontSize:'28px', marginBottom:'8px', opacity:'0.4' }}>🤳</div>
                       <div style={{ fontSize:'12px', color:'#8A8E99' }}>Click to upload selfie holding your ID</div>
-                      <div style={{ fontSize:'10px', color:'#8A8E99', marginTop:'4px' }}>JPG, PNG up to 5MB</div>
+                      <div style={{ fontSize:'10px', color:'#8A8E99', marginTop:'4px' }}>Must clearly show your face and ID</div>
                     </div>
                   )}
                 </div>
                 <input id="selfie-upload" type="file" accept="image/*" style={{ display:'none' }} onChange={e => handleFileChange(e, 'selfie')} />
               </div>
 
+              {/* Receipt Upload - only if fee is set */}
+              {kycSettings.kyc_fee > 0 && (
+                <div>
+                  <label style={labelStyle}>Payment Receipt *</label>
+                  <div style={uploadStyle} onClick={() => document.getElementById('receipt-upload').click()}>
+                    {receiptPreview ? (
+                      <img src={receiptPreview} alt="Receipt" style={{ maxWidth:'100%', maxHeight:'180px', objectFit:'contain' }} />
+                    ) : (
+                      <div>
+                        <div style={{ fontSize:'28px', marginBottom:'8px', opacity:'0.4' }}>🧾</div>
+                        <div style={{ fontSize:'12px', color:'#8A8E99' }}>Upload payment receipt</div>
+                        <div style={{ fontSize:'10px', color:'#8A8E99', marginTop:'4px' }}>Screenshot or photo of payment confirmation</div>
+                      </div>
+                    )}
+                  </div>
+                  <input id="receipt-upload" type="file" accept="image/*" style={{ display:'none' }} onChange={e => handleFileChange(e, 'receipt')} />
+                </div>
+              )}
+
               <button onClick={handleSubmitKYC} disabled={loading}
-                style={{ width:'100%', background:'#00E5FF', border:'none', color:'#0A0A0F', padding:'14px', fontSize:'11px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', clipPath:'polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)', opacity: loading ? 0.6 : 1 }}>
+                style={{ width:'100%', background:'#00E5FF', border:'none', color:'#0A0A0F', padding:'14px', fontSize:'11px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', clipPath:'polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)', opacity: loading ? 0.6 : 1, marginTop:'8px' }}>
                 {loading ? 'Submitting...' : 'Submit KYC Documents →'}
               </button>
             </>

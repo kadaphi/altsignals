@@ -171,8 +171,8 @@ export default function DepositPage() {
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'8px' }}>
               {CURRENCIES.map(c => (
                 <button key={c.id} className={`currency-btn ${currency === c.id ? 'selected' : ''}`} onClick={() => { setCurrency(c.id); setError('') }}>
-                  <span style={{ fontSize:'18px', color: currency === c.id ? '#00E5FF' : '#8A8E99' }}>{c.icon}</span>
-                  <span style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'1px', color: currency === c.id ? '#00E5FF' : '#8A8E99' }}>{c.symbol}</span>
+                 <span style={{ fontSize:'18px', color: currency === c.id ? '#00E5FF' : '#00E5FF', opacity: currency === c.id ? 1 : 0.5 }}>{c.icon}</span>
+<span style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'1px', color: currency === c.id ? '#00E5FF' : '#E8E4DC', opacity: currency === c.id ? 1 : 0.6 }}>{c.symbol}</span>
                 </button>
               ))}
             </div>
