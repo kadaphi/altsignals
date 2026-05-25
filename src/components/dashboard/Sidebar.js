@@ -76,8 +76,8 @@ export default function DashboardSidebar() {
         <button onClick={() => setCollapsed(false)} style={{ background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'16px', padding:'12px', textAlign:'center', flexShrink:0 }}>›</button>
       )}
 
-      {/* Nav Items — no flex:1, just natural height */}
-      <nav style={{ padding:'8px 0' }}>
+      {/* Nav Items — flex:1 so it fills space, user info stays at bottom */}
+      <nav style={{ flex: 1, padding:'8px 0', overflowY: 'auto' }}>
         {navItems.map((item) => {
           const isActive = pathname === item.path
           return (
@@ -87,7 +87,7 @@ export default function DashboardSidebar() {
               style={{
                 width:'100%', display:'flex', alignItems:'center',
                 gap:'12px',
-                padding: collapsed && !mobile ? '12px 0' : '11px 20px',
+                padding: collapsed && !mobile ? '14px 0' : '14px 20px',
                 justifyContent: collapsed && !mobile ? 'center' : 'flex-start',
                 background: isActive ? 'rgba(0,229,255,0.08)' : 'none',
                 border:'none',
@@ -98,28 +98,29 @@ export default function DashboardSidebar() {
               onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background='rgba(0,229,255,0.04)'; e.currentTarget.style.color='#E8E4DC' }}}
               onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background='none'; e.currentTarget.style.color='#8A8E99' }}}
             >
-              <span style={{ fontSize:'15px', flexShrink:0 }}>{item.icon}</span>
-              {(!collapsed || mobile) && <span style={{ fontSize:'11px', fontWeight:'500', letterSpacing:'0.5px', whiteSpace:'nowrap' }}>{item.label}</span>}
+              <span style={{ fontSize:'16px', flexShrink:0 }}>{item.icon}</span>
+              {(!collapsed || mobile) && <span style={{ fontSize:'12px', fontWeight:'600', letterSpacing:'0.5px', whiteSpace:'nowrap' }}>{item.label}</span>}
             </button>
           )
         })}
       </nav>
 
-      {/* User Info — right after nav, no gap */}
+      {/* User Info — pinned to bottom */}
       <div style={{
-        padding: collapsed && !mobile ? '10px 0' : '10px 20px',
+        padding: collapsed && !mobile ? '14px 0' : '14px 20px',
         borderTop:'1px solid rgba(0,229,255,0.08)',
-        marginTop: '4px'
+        flexShrink: 0,
+        background: '#0F0F1A',
       }}>
         {(!collapsed || mobile) && (
-          <div style={{ marginBottom:'4px' }}>
-            <div style={{ fontSize:'11px', fontWeight:'500', color:'#E8E4DC', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.full_name}</div>
-            <div style={{ fontSize:'9px', letterSpacing:'1.5px', textTransform:'uppercase', color:'#00E5FF' }}>{user?.account_level}</div>
+          <div style={{ marginBottom:'8px' }}>
+            <div style={{ fontSize:'12px', fontWeight:'600', color:'#E8E4DC', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.full_name}</div>
+            <div style={{ fontSize:'9px', letterSpacing:'1.5px', textTransform:'uppercase', color:'#00E5FF', marginTop:'2px' }}>{user?.account_level}</div>
           </div>
         )}
         <button
           onClick={logout}
-          style={{ width:'100%', display:'flex', alignItems:'center', gap:'8px', justifyContent: collapsed && !mobile ? 'center' : 'flex-start', background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'11px', fontWeight:'500', letterSpacing:'1px', padding:'6px 0', transition:'color 0.2s', fontFamily:'Inter, sans-serif' }}
+          style={{ width:'100%', display:'flex', alignItems:'center', gap:'8px', justifyContent: collapsed && !mobile ? 'center' : 'flex-start', background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'12px', fontWeight:'500', letterSpacing:'1px', padding:'6px 0', transition:'color 0.2s', fontFamily:'Inter, sans-serif' }}
           onMouseEnter={e => e.currentTarget.style.color='#FF4444'}
           onMouseLeave={e => e.currentTarget.style.color='#8A8E99'}
         >
