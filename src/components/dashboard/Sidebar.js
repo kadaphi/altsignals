@@ -41,16 +41,23 @@ export default function DashboardSidebar() {
     }}>
       {/* Logo */}
       <div style={{
-        padding: collapsed && !mobile ? '24px 0' : '24px 20px',
+        padding: collapsed && !mobile ? '0' : '0 20px',
         borderBottom: '1px solid rgba(0,229,255,0.08)',
-        display: 'flex', alignItems: 'center',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: collapsed && !mobile ? 'center' : 'space-between',
-        minHeight: mobile ? '88px' : '72px',
+        height: '72px',
         flexShrink: 0,
-        paddingTop: mobile ? '32px' : undefined,
       }}>
         {(!collapsed || mobile) && (
-          <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'16px', fontWeight:'700', letterSpacing:'1px', color:'#E8E4DC' }}>
+          <div style={{
+            fontFamily:"'Space Grotesk',sans-serif",
+            fontSize:'16px',
+            fontWeight:'700',
+            letterSpacing:'1px',
+            color:'#E8E4DC',
+            paddingLeft: mobile ? '52px' : '0'
+          }}>
             <span style={{ color:'#00E5FF' }}>ALT</span>SIGNALS
           </div>
         )}
@@ -69,8 +76,8 @@ export default function DashboardSidebar() {
         <button onClick={() => setCollapsed(false)} style={{ background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'16px', padding:'12px', textAlign:'center', flexShrink:0 }}>›</button>
       )}
 
-      {/* Nav Items */}
-      <nav style={{ flex:1, padding:'12px 0', overflowY:'auto' }}>
+      {/* Nav Items — no flex:1, just natural height */}
+      <nav style={{ padding:'8px 0' }}>
         {navItems.map((item) => {
           const isActive = pathname === item.path
           return (
@@ -79,7 +86,8 @@ export default function DashboardSidebar() {
               onClick={() => { router.push(item.path); if (onNavigate) onNavigate() }}
               style={{
                 width:'100%', display:'flex', alignItems:'center',
-                gap:'12px', padding: collapsed && !mobile ? '14px 0' : '12px 20px',
+                gap:'12px',
+                padding: collapsed && !mobile ? '12px 0' : '11px 20px',
                 justifyContent: collapsed && !mobile ? 'center' : 'flex-start',
                 background: isActive ? 'rgba(0,229,255,0.08)' : 'none',
                 border:'none',
@@ -97,8 +105,12 @@ export default function DashboardSidebar() {
         })}
       </nav>
 
-      {/* User Info */}
-      <div style={{ padding: collapsed && !mobile ? '10px 0' : '10px 20px', borderTop:'1px solid rgba(0,229,255,0.08)', flexShrink:0 }}>
+      {/* User Info — right after nav, no gap */}
+      <div style={{
+        padding: collapsed && !mobile ? '10px 0' : '10px 20px',
+        borderTop:'1px solid rgba(0,229,255,0.08)',
+        marginTop: '4px'
+      }}>
         {(!collapsed || mobile) && (
           <div style={{ marginBottom:'4px' }}>
             <div style={{ fontSize:'11px', fontWeight:'500', color:'#E8E4DC', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.full_name}</div>
@@ -151,7 +163,7 @@ export default function DashboardSidebar() {
         <span style={{ width:'20px', height:'2px', background:'#00E5FF', display:'block' }}></span>
       </button>
 
-      {/* Overlay — tap anywhere to close */}
+      {/* Overlay — tap to close */}
       {mobileOpen && (
         <div
           style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:150 }}
