@@ -67,7 +67,7 @@ export default function DashboardSidebar() {
       )}
 
       {/* Nav */}
-      <nav style={{ padding: '8px 0' }}>
+      <nav style={{ padding: '4px 0' }}>
         {navItems.map((item) => {
           const isActive = pathname === item.path
           return (
@@ -76,8 +76,8 @@ export default function DashboardSidebar() {
               onClick={() => { router.push(item.path); if (onNavigate) onNavigate() }}
               style={{
                 width:'100%', display:'flex', alignItems:'center',
-                gap:'12px',
-                padding: collapsed && !mobile ? '14px 0' : '13px 20px',
+                gap:'14px',
+                padding: collapsed && !mobile ? '18px 0' : '17px 20px',
                 justifyContent: collapsed && !mobile ? 'center' : 'flex-start',
                 background: isActive ? 'rgba(0,229,255,0.08)' : 'none',
                 border:'none',
@@ -88,8 +88,8 @@ export default function DashboardSidebar() {
               onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background='rgba(0,229,255,0.04)'; e.currentTarget.style.color='#E8E4DC' }}}
               onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background='none'; e.currentTarget.style.color='#8A8E99' }}}
             >
-              <span style={{ fontSize:'15px', flexShrink:0 }}>{item.icon}</span>
-              {(!collapsed || mobile) && <span style={{ fontSize:'12px', fontWeight:'600', letterSpacing:'0.3px', whiteSpace:'nowrap' }}>{item.label}</span>}
+              <span style={{ fontSize:'18px', flexShrink:0 }}>{item.icon}</span>
+              {(!collapsed || mobile) && <span style={{ fontSize:'14px', fontWeight:'600', letterSpacing:'0.3px', whiteSpace:'nowrap' }}>{item.label}</span>}
             </button>
           )
         })}
@@ -97,24 +97,24 @@ export default function DashboardSidebar() {
 
       {/* User info */}
       <div style={{
-        padding: collapsed && !mobile ? '12px 0' : '12px 20px',
+        padding: collapsed && !mobile ? '16px 0' : '16px 20px',
         borderTop:'1px solid rgba(0,229,255,0.08)',
         flexShrink: 0,
         background: '#0F0F1A',
       }}>
         {(!collapsed || mobile) && (
-          <div style={{ marginBottom:'6px' }}>
-            <div style={{ fontSize:'12px', fontWeight:'600', color:'#E8E4DC', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.full_name}</div>
-            <div style={{ fontSize:'9px', letterSpacing:'1.5px', textTransform:'uppercase', color:'#00E5FF', marginTop:'2px' }}>{user?.account_level}</div>
+          <div style={{ marginBottom:'8px' }}>
+            <div style={{ fontSize:'13px', fontWeight:'600', color:'#E8E4DC', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.full_name}</div>
+            <div style={{ fontSize:'10px', letterSpacing:'1.5px', textTransform:'uppercase', color:'#00E5FF', marginTop:'2px' }}>{user?.account_level}</div>
           </div>
         )}
         <button
           onClick={logout}
-          style={{ width:'100%', display:'flex', alignItems:'center', gap:'8px', justifyContent: collapsed && !mobile ? 'center' : 'flex-start', background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'12px', fontWeight:'500', letterSpacing:'1px', padding:'4px 0', transition:'color 0.2s', fontFamily:'Inter, sans-serif' }}
+          style={{ width:'100%', display:'flex', alignItems:'center', gap:'8px', justifyContent: collapsed && !mobile ? 'center' : 'flex-start', background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'13px', fontWeight:'500', letterSpacing:'1px', padding:'4px 0', transition:'color 0.2s', fontFamily:'Inter, sans-serif' }}
           onMouseEnter={e => e.currentTarget.style.color='#FF4444'}
           onMouseLeave={e => e.currentTarget.style.color='#8A8E99'}
         >
-          <span style={{ fontSize:'14px' }}>⏻</span>
+          <span style={{ fontSize:'15px' }}>⏻</span>
           {(!collapsed || mobile) && <span>Sign Out</span>}
         </button>
       </div>
@@ -159,7 +159,6 @@ export default function DashboardSidebar() {
       )}
 
       {mobileOpen && (
-        // 👇 background added here — this is what was showing through
         <div style={{ position:'fixed', top:0, left:0, bottom:0, zIndex:160, overflowY:'auto', WebkitOverflowScrolling:'touch', background:'#0F0F1A' }}>
           <SidebarContent mobile={true} onNavigate={() => setMobileOpen(false)} />
         </div>
