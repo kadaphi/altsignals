@@ -61,9 +61,6 @@ export default function VIPPage() {
         'VIP Futures Signals',
         '95% Win Rate Signals',
         '24/7 Trading Support',
-        'Live Trading Sessions',
-        'Members Only Community',
-        'Daily Market Analysis',
       ]
     },
     'Lifetime': {
@@ -74,9 +71,10 @@ export default function VIPPage() {
         'VIP Futures Signals',
         '95% Win Rate Signals',
         '24/7 Trading Support',
-        'Lifetime Access',
+        'Live Trading Sessions',
         'All Future Updates',
         'Members Only Community',
+        'Daily Market Analysis',
       ]
     },
     'Premium': {
