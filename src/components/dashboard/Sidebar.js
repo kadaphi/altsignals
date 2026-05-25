@@ -35,6 +35,7 @@ export default function DashboardSidebar() {
       transition: 'width 0.3s ease',
       flexShrink: 0,
       overflowX: 'hidden',
+      overflowY: 'auto',
     }}>
       {/* Logo */}
       <div style={{
@@ -66,8 +67,8 @@ export default function DashboardSidebar() {
         <button onClick={() => setCollapsed(false)} style={{ background:'none', border:'none', color:'#8A8E99', cursor:'pointer', fontSize:'16px', padding:'12px', textAlign:'center', flexShrink:0 }}>›</button>
       )}
 
-      {/* Nav — scrollable, takes available space */}
-      <nav style={{ overflowY: 'auto', padding:'8px 0', flex:1 }}>
+      {/* Nav — no flex:1, no overflowY, sidebar scrolls as a whole */}
+      <nav style={{ padding: '8px 0' }}>
         {navItems.map((item) => {
           const isActive = pathname === item.path
           return (
@@ -95,7 +96,7 @@ export default function DashboardSidebar() {
         })}
       </nav>
 
-      {/* User info — always visible at bottom */}
+      {/* User info — sits directly below nav, no gap */}
       <div style={{
         padding: collapsed && !mobile ? '12px 0' : '12px 20px',
         borderTop:'1px solid rgba(0,229,255,0.08)',
