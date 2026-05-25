@@ -41,7 +41,7 @@ export default function DashboardSidebar() {
     }}>
       {/* Logo */}
       <div style={{
-        padding: collapsed && !mobile ? '0' : '0 20px',
+        padding: collapsed && !mobile ? '10px 0' : '10px 20px',
         borderBottom: '1px solid rgba(0,229,255,0.08)',
         display: 'flex',
         alignItems: 'center',
@@ -113,10 +113,10 @@ export default function DashboardSidebar() {
         background: '#0F0F1A',
       }}>
         {(!collapsed || mobile) && (
-          <div style={{ marginBottom:'8px' }}>
-            <div style={{ fontSize:'12px', fontWeight:'600', color:'#E8E4DC', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.full_name}</div>
-            <div style={{ fontSize:'9px', letterSpacing:'1.5px', textTransform:'uppercase', color:'#00E5FF', marginTop:'2px' }}>{user?.account_level}</div>
-          </div>
+          <div style={{ marginBottom:'4px' }}>
+  <div style={{ fontSize:'12px', fontWeight:'600', color:'#E8E4DC', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.full_name}</div>
+  <div style={{ fontSize:'9px', letterSpacing:'1.5px', textTransform:'uppercase', color:'#00E5FF', marginTop:'1px' }}>{user?.account_level}</div>
+</div>
         )}
         <button
           onClick={logout}
