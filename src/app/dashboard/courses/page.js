@@ -8,6 +8,7 @@ export default function CoursesPage() {
   const [purchasedIds, setPurchasedIds] = useState([])
   const [coaching, setCoaching] = useState({})
   const [loading, setLoading] = useState(true)
+  const { refreshUser } = useAuth()
   const [purchasing, setPurchasing] = useState(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -43,7 +44,8 @@ export default function CoursesPage() {
       if (data.error === 'INSUFFICIENT_BALANCE') { router.push('/dashboard/deposit'); return }
       if (!res.ok) return setError(data.error)
       setSuccess('Course purchased! Access link has been sent to your notifications.')
-      fetchCourses()
+await refreshUser()
+fetchCourses()
     } catch { setError('Something went wrong') }
     finally { setPurchasing(null) }
   }

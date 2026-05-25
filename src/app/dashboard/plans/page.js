@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 
 export default function PlansPage() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const router = useRouter()
   const [plans, setPlans] = useState([])
   const [investments, setInvestments] = useState([])
@@ -76,11 +76,12 @@ export default function PlansPage() {
       if (data.error === 'INSUFFICIENT_BALANCE') { router.push('/dashboard/deposit'); return }
       if (!res.ok) return setError(data.error)
       setSuccess(true)
-      setSelectedPlan(null)
-      setShowCustom(false)
-      setCustomAmount('')
-      setCustomPreview(null)
-      fetchPlans()
+setSelectedPlan(null)
+setShowCustom(false)
+setCustomAmount('')
+setCustomPreview(null)
+await refreshUser()
+fetchPlans()
     } catch { setError('Something went wrong') }
     finally { setInvesting(false) }
   }

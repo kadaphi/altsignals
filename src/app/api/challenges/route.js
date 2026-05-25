@@ -76,7 +76,7 @@ export async function POST(req) {
 
     await supabaseAdmin.from('notifications').insert({
       user_id: user.id,
-      title: 'Challenge Enrollment Confirmed',
+      title: '⚔ Challenge Enrollment Confirmed',
       message: `You have successfully enrolled in the ${challenge.name} challenge. Good luck!`,
       type: 'challenge'
     })
@@ -89,27 +89,37 @@ export async function POST(req) {
           token: process.env.PUSHOVER_API_TOKEN,
           user: process.env.PUSHOVER_USER_KEY,
           title: '⚔ New Challenge Enrollment',
-          message: `${user.full_name} enrolled in ${challenge.name} challenge`,
+          message: `${user.full_name} enrolled in ${challenge.name} — $${challenge.entry_fee}`,
           priority: 0
         })
       })
     }
 
-    return Response.json({ success: true })
+    return Response.json({
+      success: true,
+      challenge_link: challenge.challenge_link || null
+    })
   } catch {
     return Response.json({ error: 'Something went wrong' }, { status: 500 })
   }
 }
+
 export async function PATCH(req) {
   try {
     const user = await getUserFromRequest(req)
     if (!user?.is_admin) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { challenge_id, entry_fee } = await req.json()
+    const { challenge_id, entry_fee, challenge_link, prize_description, reward_amount } = await req.json()
+
+    const updates = {}
+    if (entry_fee !== undefined) updates.entry_fee = entry_fee
+    if (challenge_link !== undefined) updates.challenge_link = challenge_link
+    if (prize_description !== undefined) updates.prize_description = prize_description
+    if (reward_amount !== undefined) updates.reward_amount = reward_amount
 
     await supabaseAdmin
       .from('challenges')
-      .update({ entry_fee })
+      .update(updates)
       .eq('id', challenge_id)
 
     return Response.json({ success: true })

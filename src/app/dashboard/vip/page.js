@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 
 export default function VIPPage() {
-  const { user, updateUser } = useAuth()
+  const { user, updateUser, refreshUser } = useAuth()
   const router = useRouter()
   const [plans, setPlans] = useState([])
   const [subscription, setSubscription] = useState(null)
@@ -44,8 +44,9 @@ export default function VIPPage() {
       if (data.error === 'INSUFFICIENT_BALANCE') { router.push('/dashboard/deposit'); return }
       if (!res.ok) return setError(data.error)
       setSuccess('VIP subscription activated!')
-      if (data.telegram_invite_link) setInviteLink(data.telegram_invite_link)
-      fetchVIP()
+if (data.telegram_invite_link) setInviteLink(data.telegram_invite_link)
+await refreshUser()
+fetchVIP()
     } catch { setError('Something went wrong') }
     finally { setPurchasing(null) }
   }

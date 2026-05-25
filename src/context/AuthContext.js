@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 const AuthContext = createContext({})
@@ -37,6 +37,20 @@ export function AuthProvider({ children }) {
     setUser(prev => ({ ...prev, ...updates }))
   }
 
+  async function refreshUser() {
+    const token = localStorage.getItem('as_token')
+    if (!token) return
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data.user)
+      }
+    } catch {}
+  }
+
   async function logout() {
     try {
       await fetch('/api/auth/logout', {
@@ -50,7 +64,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, updateUser, logout }}>
+    <AuthContext.Provider value={{ user, loading, updateUser, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   )
