@@ -52,6 +52,13 @@ export async function POST(req) {
       description
     })
 
+    await supabaseAdmin.from('trading_history').insert({
+      user_id: user.id,
+      type: 'copy_trade',
+      amount,
+      description
+    })
+
     const newProfit = (subscription.current_profit || 0) + amount
 
     await supabaseAdmin
