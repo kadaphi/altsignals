@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" fill="#0A0A0F"/>
-  <rect width="32" height="2" fill="#00E5FF"/>
-  <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="13" font-weight="900" fill="#00E5FF">AS</text>
-  <rect x="0" y="30" width="32" height="2" fill="#00E5FF" opacity="0.3"/>
-</svg>
