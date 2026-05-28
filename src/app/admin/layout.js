@@ -16,6 +16,7 @@ const navItems = [
   { label: 'Chat', path: '/admin/chat' },
   { label: 'Settings', path: '/admin/settings' },
   { label: 'Send Email', path: '/admin/send-email' },
+  { label: 'Inbox', path: '/admin/inbox' },
 ]
 
 export default function AdminLayout({ children }) {
