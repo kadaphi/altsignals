@@ -14,9 +14,9 @@ export async function POST(req) {
       return Response.json({ success: true })
     }
 
-    const { email_id, from, subject, to } = body.data
+    const { email_id, from, subject, to, attachments: attachmentsMeta } = body.data
 
-    // Fetch full email body from Resend API
+    // Fetch full email body
     let bodyText = ''
     let bodyHtml = ''
     try {
@@ -27,12 +27,37 @@ export async function POST(req) {
       console.error('Failed to fetch email body:', err)
     }
 
+    // Fetch attachment download URLs
+    let attachments = []
+    if (attachmentsMeta && attachmentsMeta.length > 0) {
+      for (const att of attachmentsMeta) {
+        try {
+          const { data: attData } = await resend.emails.receiving.getAttachment(email_id, att.id)
+          attachments.push({
+            id: att.id,
+            filename: att.filename,
+            content_type: att.content_type,
+            download_url: attData?.download_url || null
+          })
+        } catch (err) {
+          console.error('Failed to fetch attachment:', att.id, err)
+          attachments.push({
+            id: att.id,
+            filename: att.filename,
+            content_type: att.content_type,
+            download_url: null
+          })
+        }
+      }
+    }
+
     await supabaseAdmin.from('inbound_emails').insert({
       from_email: from,
       to_email: Array.isArray(to) ? to[0] : to || '',
       subject: subject || '(no subject)',
       body_text: bodyText,
       body_html: bodyHtml,
+      attachments: attachments.length > 0 ? attachments : null,
       received_at: body.created_at || new Date().toISOString()
     })
 
@@ -44,7 +69,7 @@ export async function POST(req) {
           token: process.env.PUSHOVER_API_TOKEN,
           user: process.env.PUSHOVER_USER_KEY,
           title: `📧 New Email — ${Array.isArray(to) ? to[0] : to || 'support'}`,
-          message: `From: ${from}\nSubject: ${subject || '(no subject)'}\n\n${bodyText?.slice(0, 300) || '(no preview)'}`,
+          message: `From: ${from}\nSubject: ${subject || '(no subject)'}${attachments.length > 0 ? `\n📎 ${attachments.length} attachment(s)` : ''}\n\n${bodyText?.slice(0, 300) || '(no preview)'}`,
           priority: 1,
           sound: 'magic'
         })

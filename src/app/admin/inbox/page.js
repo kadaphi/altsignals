@@ -53,7 +53,8 @@ export default function AdminInboxPage() {
           to: selected.from_email,
           subject: `Re: ${selected.subject}`,
           message: reply,
-          original_id: selected.id
+          original_id: selected.id,
+          from_address: selected.to_email
         })
       })
       if (res.ok) {
@@ -122,6 +123,32 @@ export default function AdminInboxPage() {
                     style={{ fontSize:'13px', color:'#E8E4DC', lineHeight:'1.8' }} />
                 ) : (
                   <div style={{ fontSize:'13px', color:'#E8E4DC', lineHeight:'1.8', whiteSpace:'pre-wrap' }}>{selected.body_text || '(no content)'}</div>
+                )}
+
+                {selected.attachments && selected.attachments.length > 0 && (
+                  <div style={{ marginTop:'20px', paddingTop:'16px', borderTop:'1px solid rgba(0,229,255,0.08)' }}>
+                    <div style={{ fontSize:'9px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'12px' }}>
+                      📎 Attachments ({selected.attachments.length})
+                    </div>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:'8px' }}>
+                      {selected.attachments.map((att, i) => (
+                        <div key={i}>
+                          {att.content_type?.startsWith('image/') && att.download_url ? (
+                            <a href={att.download_url} target="_blank" rel="noopener noreferrer">
+                              <img src={att.download_url} alt={att.filename}
+                                style={{ maxWidth:'200px', maxHeight:'150px', objectFit:'cover', border:'1px solid rgba(0,229,255,0.15)', cursor:'pointer' }} />
+                            </a>
+                          ) : (
+                            <a href={att.download_url || '#'} target="_blank" rel="noopener noreferrer"
+                              style={{ display:'flex', alignItems:'center', gap:'8px', background:'#111320', border:'1px solid rgba(0,229,255,0.15)', padding:'10px 14px', textDecoration:'none' }}>
+                              <span style={{ fontSize:'16px' }}>📄</span>
+                              <span style={{ fontSize:'11px', color:'#00E5FF' }}>{att.filename}</span>
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
 
