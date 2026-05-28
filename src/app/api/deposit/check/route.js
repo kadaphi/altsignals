@@ -21,9 +21,9 @@ export async function POST(req) {
         .single()
 
       if (deposit && deposit.status !== 'completed') {
-        await creditDeposit(deposit, null, freshUser)
-        return Response.json({ status: 'completed', credited: true })
-      }
+  await creditDeposit(deposit, null)
+  return Response.json({ status: 'completed', credited: true })
+}
       return Response.json({ status: 'unknown' })
     }
 
