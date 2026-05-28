@@ -126,30 +126,32 @@ export default function AdminInboxPage() {
                 )}
 
                 {selected.attachments && selected.attachments.length > 0 && (
-                  <div style={{ marginTop:'20px', paddingTop:'16px', borderTop:'1px solid rgba(0,229,255,0.08)' }}>
-                    <div style={{ fontSize:'9px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'12px' }}>
-                      📎 Attachments ({selected.attachments.length})
-                    </div>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:'8px' }}>
-                      {selected.attachments.map((att, i) => (
-                        <div key={i}>
-                          {att.content_type?.startsWith('image/') && att.download_url ? (
-                            <a href={att.download_url} target="_blank" rel="noopener noreferrer">
-                              <img src={att.download_url} alt={att.filename}
-                                style={{ maxWidth:'200px', maxHeight:'150px', objectFit:'cover', border:'1px solid rgba(0,229,255,0.15)', cursor:'pointer' }} />
-                            </a>
-                          ) : (
-                            <a href={att.download_url || '#'} target="_blank" rel="noopener noreferrer"
-                              style={{ display:'flex', alignItems:'center', gap:'8px', background:'#111320', border:'1px solid rgba(0,229,255,0.15)', padding:'10px 14px', textDecoration:'none' }}>
-                              <span style={{ fontSize:'16px' }}>📄</span>
-                              <span style={{ fontSize:'11px', color:'#00E5FF' }}>{att.filename}</span>
-                            </a>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+  <div style={{ marginTop:'20px', paddingTop:'16px', borderTop:'1px solid rgba(0,229,255,0.08)' }}>
+    <div style={{ fontSize:'9px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'12px' }}>
+      📎 Attachments ({selected.attachments.length})
+    </div>
+    <div style={{ display:'flex', flexWrap:'wrap', gap:'8px' }}>
+      {selected.attachments.map((att, i) => (
+        <button key={i}
+          onClick={async () => {
+            try {
+              const res = await fetch(`/api/admin/inbox/attachment?email_id=${selected.email_id}&attachment_id=${att.id}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('as_token')}` }
+              })
+              const data = await res.json()
+              if (data.download_url) window.open(data.download_url, '_blank')
+            } catch {}
+          }}
+          style={{ display:'flex', alignItems:'center', gap:'8px', background:'#111320', border:'1px solid rgba(0,229,255,0.15)', padding:'10px 14px', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+          <span style={{ fontSize:'16px' }}>{att.content_type?.startsWith('image/') ? '🖼️' : '📄'}</span>
+          <span style={{ fontSize:'11px', color:'#00E5FF' }}>{att.filename}</span>
+          {att.size && <span style={{ fontSize:'9px', color:'#8A8E99' }}>({Math.round(att.size / 1024)}KB)</span>}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
+
               </div>
 
               <div style={{ padding:'16px 24px', borderTop:'1px solid rgba(0,229,255,0.08)', flexShrink:0 }}>

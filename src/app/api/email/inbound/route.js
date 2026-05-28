@@ -27,29 +27,13 @@ export async function POST(req) {
       console.error('Failed to fetch email body:', err)
     }
 
-    // Fetch attachment download URLs
-    let attachments = []
-    if (attachmentsMeta && attachmentsMeta.length > 0) {
-      for (const att of attachmentsMeta) {
-        try {
-          const { data: attData } = await resend.emails.receiving.getAttachment(email_id, att.id)
-          attachments.push({
-            id: att.id,
-            filename: att.filename,
-            content_type: att.content_type,
-            download_url: attData?.download_url || null
-          })
-        } catch (err) {
-          console.error('Failed to fetch attachment:', att.id, err)
-          attachments.push({
-            id: att.id,
-            filename: att.filename,
-            content_type: att.content_type,
-            download_url: null
-          })
-        }
-      }
-    }
+    // Store attachment metadata only — not download URLs (they expire)
+    const attachments = (attachmentsMeta || []).map(att => ({
+      id: att.id,
+      filename: att.filename,
+      content_type: att.content_type,
+      size: att.size || null
+    }))
 
     await supabaseAdmin.from('inbound_emails').insert({
       from_email: from,
@@ -58,6 +42,7 @@ export async function POST(req) {
       body_text: bodyText,
       body_html: bodyHtml,
       attachments: attachments.length > 0 ? attachments : null,
+      email_id: email_id,
       received_at: body.created_at || new Date().toISOString()
     })
 

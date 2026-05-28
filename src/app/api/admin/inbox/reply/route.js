@@ -3,15 +3,30 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+const validFromAddresses = [
+  'support@altsignals.finance',
+  'invest@altsignals.finance',
+  'compliance@altsignals.finance',
+  'noreply@altsignals.finance',
+  'verification@altsignals.finance',
+]
+
 export async function POST(req) {
   try {
     const user = await getUserFromRequest(req)
     if (!user?.is_admin) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { to, subject, message } = await req.json()
+    const { to, subject, message, from_address } = await req.json()
+
+    // Use the address the original email was sent to, fallback to support
+    const fromAddress = validFromAddresses.includes(from_address)
+      ? from_address
+      : 'support@altsignals.finance'
+
+    const fromName = fromAddress.split('@')[0].charAt(0).toUpperCase() + fromAddress.split('@')[0].slice(1)
 
     await resend.emails.send({
-      from: 'AltSignals Support <support@altsignals.finance>',
+      from: `AltSignals ${fromName} <${fromAddress}>`,
       to,
       subject,
       html: `
@@ -21,7 +36,7 @@ export async function POST(req) {
           </div>
           <div style="color:#E8E4DC;font-size:14px;line-height:1.8;white-space:pre-wrap;">${message}</div>
           <div style="margin-top:32px;padding-top:16px;border-top:1px solid rgba(0,229,255,0.1);color:#8A8E99;font-size:11px;">
-            AltSignals Support Team · support@altsignals.finance
+            AltSignals ${fromName} · ${fromAddress}
           </div>
         </div>
       `
