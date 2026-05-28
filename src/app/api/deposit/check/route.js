@@ -13,24 +13,14 @@ export async function POST(req) {
     })
 
     if (!res.ok) {
-      const { data: deposit } = await supabaseAdmin
-        .from('deposits')
-        .select('*')
-        .eq('id', deposit_id)
-        .eq('user_id', user.id)
-        .single()
-
-      if (deposit && deposit.status !== 'completed') {
-  await creditDeposit(deposit, null)
-  return Response.json({ status: 'completed', credited: true })
-}
+      console.log('NOWPayments API check failed for payment:', payment_id)
       return Response.json({ status: 'unknown' })
     }
 
     const payment = await res.json()
     const status = payment.payment_status
 
-    console.log('Payment status check:', payment_id, status, 'actually_paid:', payment.actually_paid)
+    console.log('Payment status check:', payment_id, status)
 
     if (status === 'finished' || status === 'confirmed' || status === 'partially_paid' || status === 'sending') {
       const { data: deposit } = await supabaseAdmin
@@ -65,7 +55,6 @@ async function creditDeposit(deposit, payment) {
 
   if (!freshUser) return
 
-  // Use actually_paid from NOWPayments if available, otherwise use invoice amount
   const invoiceAmount = Number(deposit.amount)
   const actuallyPaid = payment?.actually_paid ? Number(payment.actually_paid) : null
   const creditAmount = actuallyPaid && actuallyPaid < invoiceAmount ? actuallyPaid : invoiceAmount
