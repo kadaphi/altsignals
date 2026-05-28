@@ -21,7 +21,7 @@ export async function POST(req) {
         .single()
 
       if (deposit && deposit.status !== 'completed') {
-        await creditDeposit(deposit)
+        await creditDeposit(deposit, null, freshUser)
         return Response.json({ status: 'completed', credited: true })
       }
       return Response.json({ status: 'unknown' })
@@ -30,7 +30,7 @@ export async function POST(req) {
     const payment = await res.json()
     const status = payment.payment_status
 
-    console.log('Payment status check:', payment_id, status)
+    console.log('Payment status check:', payment_id, status, 'actually_paid:', payment.actually_paid)
 
     if (status === 'finished' || status === 'confirmed' || status === 'partially_paid' || status === 'sending') {
       const { data: deposit } = await supabaseAdmin
@@ -45,7 +45,7 @@ export async function POST(req) {
         return Response.json({ status: 'completed', already_processed: true })
       }
 
-      await creditDeposit(deposit)
+      await creditDeposit(deposit, payment)
       return Response.json({ status: 'completed', credited: true })
     }
 
@@ -56,7 +56,7 @@ export async function POST(req) {
   }
 }
 
-async function creditDeposit(deposit) {
+async function creditDeposit(deposit, payment) {
   const { data: freshUser } = await supabaseAdmin
     .from('users')
     .select('deposit_balance, total_deposited, full_name')
@@ -65,31 +65,39 @@ async function creditDeposit(deposit) {
 
   if (!freshUser) return
 
+  // Use actually_paid from NOWPayments if available, otherwise use invoice amount
+  const invoiceAmount = Number(deposit.amount)
+  const actuallyPaid = payment?.actually_paid ? Number(payment.actually_paid) : null
+  const creditAmount = actuallyPaid && actuallyPaid < invoiceAmount ? actuallyPaid : invoiceAmount
+  const isPartial = creditAmount < invoiceAmount
+
   await supabaseAdmin
     .from('deposits')
-    .update({ status: 'completed' })
+    .update({ status: 'completed', amount: creditAmount })
     .eq('id', deposit.id)
 
   await supabaseAdmin
     .from('users')
     .update({
-      deposit_balance: (freshUser.deposit_balance || 0) + Number(deposit.amount),
-      total_deposited: (freshUser.total_deposited || 0) + Number(deposit.amount)
+      deposit_balance: (freshUser.deposit_balance || 0) + creditAmount,
+      total_deposited: (freshUser.total_deposited || 0) + creditAmount
     })
     .eq('id', deposit.user_id)
 
   await supabaseAdmin.from('trading_history').insert({
     user_id: deposit.user_id,
     type: 'deposit',
-    amount: Number(deposit.amount),
-    description: `Deposit of $${deposit.amount} via ${deposit.currency?.toUpperCase() || 'crypto'}`,
+    amount: creditAmount,
+    description: `Deposit of $${creditAmount} via ${deposit.currency?.toUpperCase() || 'crypto'}${isPartial ? ` (partial — invoice was $${invoiceAmount})` : ''}`,
     reference_id: deposit.id
   })
 
   await supabaseAdmin.from('notifications').insert({
     user_id: deposit.user_id,
     title: 'Deposit Confirmed',
-    message: `Your deposit of $${deposit.amount} has been confirmed and credited to your account.`,
+    message: isPartial
+      ? `Your deposit of $${creditAmount} has been credited. Note: your invoice was $${invoiceAmount} — the difference was deducted in network fees.`
+      : `Your deposit of $${creditAmount} has been confirmed and credited to your account.`,
     type: 'deposit'
   })
 
@@ -101,7 +109,7 @@ async function creditDeposit(deposit) {
         token: process.env.PUSHOVER_API_TOKEN,
         user: process.env.PUSHOVER_USER_KEY,
         title: '💰 New AltSignals Deposit',
-        message: `$${deposit.amount} deposit confirmed for ${freshUser.full_name}`,
+        message: `$${creditAmount} deposit confirmed for ${freshUser.full_name}${isPartial ? ` (partial of $${invoiceAmount})` : ''}`,
         priority: 1,
         sound: 'cashregister'
       })
