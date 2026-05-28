@@ -1,28 +1,41 @@
 export const dynamic = 'force-dynamic'
+
 import { supabaseAdmin } from '@/lib/supabase'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req) {
   try {
-    const body = await req.json()
-    console.log('Inbound email received:', JSON.stringify(body))
+    const payload = await req.text()
+    const body = JSON.parse(payload)
 
     if (body.type !== 'email.received') {
       return Response.json({ success: true })
     }
 
-    const { from, subject, text, html, to } = body.data
+    const { email_id, from, subject, to } = body.data
 
-    // Store in database
+    // Fetch full email body from Resend API
+    let bodyText = ''
+    let bodyHtml = ''
+    try {
+      const { data: fullEmail } = await resend.emails.receiving.get(email_id)
+      bodyText = fullEmail?.text || ''
+      bodyHtml = fullEmail?.html || ''
+    } catch (err) {
+      console.error('Failed to fetch email body:', err)
+    }
+
     await supabaseAdmin.from('inbound_emails').insert({
       from_email: from,
       to_email: Array.isArray(to) ? to[0] : to || '',
       subject: subject || '(no subject)',
-      body_text: text || '',
-      body_html: html || '',
+      body_text: bodyText,
+      body_html: bodyHtml,
       received_at: body.created_at || new Date().toISOString()
     })
 
-    // Pushover notification
     if (process.env.PUSHOVER_API_TOKEN) {
       await fetch('https://api.pushover.net/1/messages.json', {
         method: 'POST',
@@ -31,9 +44,9 @@ export async function POST(req) {
           token: process.env.PUSHOVER_API_TOKEN,
           user: process.env.PUSHOVER_USER_KEY,
           title: `📧 New Email — ${Array.isArray(to) ? to[0] : to || 'support'}`,
-          message: `From: ${from}\nSubject: ${subject || '(no subject)'}\n\n${text?.slice(0, 300) || '(no text)'}`,
+          message: `From: ${from}\nSubject: ${subject || '(no subject)'}\n\n${bodyText?.slice(0, 300) || '(no preview)'}`,
           priority: 1,
-          sound: 'incoming'
+          sound: 'magic'
         })
       })
     }
