@@ -6,15 +6,24 @@ import { useRouter } from 'next/navigation'
 const CURRENCIES = [
   { id: 'usdttrc20', symbol: 'USDT TRC20', name: 'Tether TRC20', icon: '₮', color: '#26A17B' },
   { id: 'usdterc20', symbol: 'USDT ERC20', name: 'Tether ERC20', icon: '₮', color: '#26A17B' },
-  { id: 'usdcbsc', symbol: 'USDC', name: 'USD Coin', icon: '$', color: '#2775CA' },
-  { id: 'btc', symbol: 'BTC', name: 'Bitcoin', icon: '₿', color: '#F7931A' },
-  { id: 'eth', symbol: 'ETH', name: 'Ethereum', icon: 'Ξ', color: '#627EEA' },
-  { id: 'bnbbsc', symbol: 'BNB', name: 'BNB Chain', icon: 'B', color: '#F3BA2F' },
-  { id: 'trx', symbol: 'TRX', name: 'Tron', icon: '◈', color: '#FF0013' },
-  { id: 'sol', symbol: 'SOL', name: 'Solana', icon: '◎', color: '#9945FF' },
-  { id: 'ltc', symbol: 'LTC', name: 'Litecoin', icon: 'Ł', color: '#BFBBBB' },
-  { id: 'doge', symbol: 'DOGE', name: 'Dogecoin', icon: 'Ð', color: '#C2A633' },
+  { id: 'usdcbsc',   symbol: 'USDC',       name: 'USD Coin',     icon: '$', color: '#2775CA' },
+  { id: 'btc',       symbol: 'BTC',        name: 'Bitcoin',      icon: '₿', color: '#F7931A' },
+  { id: 'eth',       symbol: 'ETH',        name: 'Ethereum',     icon: 'Ξ', color: '#627EEA' },
+  { id: 'bnbbsc',    symbol: 'BNB',        name: 'BNB Chain',    icon: 'B', color: '#F3BA2F' },
+  { id: 'trx',       symbol: 'TRX',        name: 'Tron',         icon: '◈', color: '#FF0013' },
+  { id: 'sol',       symbol: 'SOL',        name: 'Solana',       icon: '◎', color: '#9945FF' },
+  { id: 'ltc',       symbol: 'LTC',        name: 'Litecoin',     icon: 'Ł', color: '#BFBBBB' },
+  { id: 'doge',      symbol: 'DOGE',       name: 'Dogecoin',     icon: 'Ð', color: '#C2A633' },
 ]
+
+// Stablecoins don't need conversion
+const STABLECOINS = ['usdttrc20', 'usdterc20', 'usdcbsc']
+
+// CoinGecko IDs for price fetch
+const COINGECKO_IDS = {
+  btc: 'bitcoin', eth: 'ethereum', bnbbsc: 'binancecoin',
+  trx: 'tron', sol: 'solana', ltc: 'litecoin', doge: 'dogecoin'
+}
 
 export default function DepositPage() {
   const { user, updateUser } = useAuth()
@@ -28,12 +37,27 @@ export default function DepositPage() {
   const [depositInfo, setDepositInfo] = useState(null)
   const [copied, setCopied] = useState(false)
   const [polling, setPolling] = useState(false)
+  const [cryptoAmount, setCryptoAmount] = useState(null)
+  const [fetchingPrice, setFetchingPrice] = useState(false)
   const pollRef = useRef(null)
+  const priceRef = useRef(null)
 
   useEffect(() => {
     fetchMinDeposit()
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+      if (priceRef.current) clearTimeout(priceRef.current)
+    }
   }, [])
+
+  useEffect(() => {
+    if (amount && currency && !STABLECOINS.includes(currency)) {
+      if (priceRef.current) clearTimeout(priceRef.current)
+      priceRef.current = setTimeout(() => fetchCryptoPrice(), 500)
+    } else {
+      setCryptoAmount(null)
+    }
+  }, [amount, currency])
 
   async function fetchMinDeposit() {
     try {
@@ -44,6 +68,24 @@ export default function DepositPage() {
       }
     } catch {}
     finally { setFetchingMin(false) }
+  }
+
+  async function fetchCryptoPrice() {
+    const geckoId = COINGECKO_IDS[currency]
+    if (!geckoId || !amount || Number(amount) <= 0) return
+    setFetchingPrice(true)
+    try {
+      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${geckoId}&vs_currencies=usd`)
+      if (res.ok) {
+        const data = await res.json()
+        const price = data[geckoId]?.usd
+        if (price) {
+          const crypto = (Number(amount) / price).toFixed(6)
+          setCryptoAmount({ amount: crypto, symbol: CURRENCIES.find(c => c.id === currency)?.symbol })
+        }
+      }
+    } catch {}
+    finally { setFetchingPrice(false) }
   }
 
   async function handleDeposit() {
@@ -63,7 +105,7 @@ export default function DepositPage() {
       })
       const data = await res.json()
       if (!res.ok) return setError(data.error)
-      setDepositInfo(data)
+      setDepositInfo({ ...data, cryptoAmount })
       startPolling(data.deposit_id)
     } catch { setError('Something went wrong') }
     finally { setLoading(false) }
@@ -125,7 +167,7 @@ export default function DepositPage() {
         <h1 style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'32px', fontWeight:'700', color:'#E8E4DC' }}>Deposit</h1>
       </div>
 
-      {/* Completed state */}
+      {/* Completed */}
       {depositInfo?.completed && (
         <div style={{ background:'rgba(0,255,136,0.1)', border:'1px solid rgba(0,255,136,0.3)', padding:'32px', textAlign:'center', marginBottom:'24px', position:'relative' }}>
           <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'2px', background:'linear-gradient(90deg,#00FF88,transparent)' }}></div>
@@ -138,7 +180,7 @@ export default function DepositPage() {
         </div>
       )}
 
-      {/* Address display state */}
+      {/* Address display */}
       {depositInfo && !depositInfo.completed && (
         <div style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.15)', padding:'28px', marginBottom:'24px', position:'relative' }}>
           <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'2px', background:'linear-gradient(90deg,#00E5FF,transparent)' }}></div>
@@ -149,31 +191,36 @@ export default function DepositPage() {
             {polling && <div style={{ width:'16px', height:'16px', border:'2px solid rgba(0,229,255,0.2)', borderTop:'2px solid #00E5FF', borderRadius:'50%', animation:'spin 1s linear infinite', marginLeft:'auto' }}></div>}
           </div>
 
-          <div style={{ marginBottom:'16px' }}>
-            <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'8px' }}>Send exactly</div>
+          <div style={{ marginBottom:'20px' }}>
+            <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'8px' }}>Amount to send</div>
             <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'28px', fontWeight:'700', color:'#00E5FF' }}>
               ${Number(depositInfo.amount).toLocaleString()}
-              <span style={{ fontSize:'14px', color:'#8A8E99', marginLeft:'8px' }}>USD worth of {depositInfo.currency}</span>
+              <span style={{ fontSize:'14px', color:'#8A8E99', marginLeft:'8px' }}>USD</span>
             </div>
+            {depositInfo.cryptoAmount && (
+              <div style={{ fontSize:'14px', color:'#FFD700', marginTop:'6px', fontWeight:'600' }}>
+                ≈ {depositInfo.cryptoAmount.amount} {depositInfo.cryptoAmount.symbol}
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom:'8px' }}>
             <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'8px' }}>
-              {depositInfo.currency} ({depositInfo.network}) Deposit Address
+              {depositInfo.currency} ({depositInfo.network}) Address
             </div>
             <div style={{ background:'#111320', border:'1px solid rgba(0,229,255,0.2)', padding:'14px 16px', display:'flex', alignItems:'center', gap:'12px', cursor:'pointer' }}
               onClick={copyAddress}>
               <div style={{ flex:1, fontSize:'12px', color:'#00E5FF', fontFamily:'monospace', wordBreak:'break-all' }}>{depositInfo.address}</div>
               <div style={{ fontSize:'18px', flexShrink:0 }}>{copied ? '✓' : '📋'}</div>
             </div>
-            <div style={{ fontSize:'10px', color:'#8A8E99', marginTop:'6px' }}>
+            <div style={{ fontSize:'10px', color: copied ? '#00FF88' : '#8A8E99', marginTop:'6px' }}>
               {copied ? '✓ Copied!' : 'Tap to copy address'}
             </div>
           </div>
 
           <div style={{ background:'rgba(255,68,68,0.06)', border:'1px solid rgba(255,68,68,0.15)', padding:'12px 16px', marginTop:'16px' }}>
             <div style={{ fontSize:'11px', color:'#FF6B6B', lineHeight:'1.7' }}>
-              ⚠️ Only send <strong>{depositInfo.currency}</strong> on the <strong>{depositInfo.network}</strong> network to this address. Sending other assets will result in permanent loss.
+              ⚠️ Only send <strong>{depositInfo.currency}</strong> on the <strong>{depositInfo.network}</strong> network. Sending other assets will result in permanent loss.
             </div>
           </div>
 
@@ -183,7 +230,7 @@ export default function DepositPage() {
         </div>
       )}
 
-      {/* Deposit form */}
+      {/* Form */}
       {!depositInfo && (
         <div style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', padding:'32px', position:'relative' }}>
           <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'2px', background:'linear-gradient(90deg,#00E5FF,transparent)' }}></div>
@@ -202,6 +249,14 @@ export default function DepositPage() {
                   onChange={e => { setAmount(e.target.value); setError('') }} min={min} />
               )}
             </div>
+
+            {/* Crypto equivalent */}
+            {currency && !STABLECOINS.includes(currency) && amount && Number(amount) > 0 && (
+              <div style={{ marginTop:'8px', padding:'10px 14px', background:'rgba(255,215,0,0.06)', border:'1px solid rgba(255,215,0,0.15)', fontSize:'12px', color:'#FFD700' }}>
+                {fetchingPrice ? 'Fetching price...' : cryptoAmount ? `≈ ${cryptoAmount.amount} ${cryptoAmount.symbol}` : ''}
+              </div>
+            )}
+
             {!fetchingMin && (
               <div style={{ display:'flex', gap:'8px', marginTop:'10px', flexWrap:'wrap' }}>
                 {[min, 500, 1000, 5000, 10000].filter((v,i,a) => a.indexOf(v) === i).map(v => (
@@ -215,7 +270,7 @@ export default function DepositPage() {
 
           <div style={{ marginBottom:'20px' }}>
             <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'8px' }}>Select Currency</div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'8px' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'8px' }}>
               {CURRENCIES.map(c => (
                 <button key={c.id} className={`currency-btn ${currency === c.id ? 'selected' : ''}`}
                   onClick={() => { setCurrency(c.id); setError('') }}>
