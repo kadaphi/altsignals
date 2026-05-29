@@ -60,7 +60,7 @@ export async function POST(req) {
       return Response.json({ error: 'Unsupported currency' }, { status: 400 })
     }
 
-    const orderId = `AS-${user.id}-${Date.now()}`
+    const orderId = `AS-${user.id.split('-')[0]}-${Date.now()}`
 
     // Check if user already has a static address for this currency/network
     const { data: existingDeposit } = await supabaseAdmin
