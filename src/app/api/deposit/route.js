@@ -1,18 +1,17 @@
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 
-// Map our currency IDs to OxaPay network/currency pairs
 const CURRENCY_MAP = {
-  btc:          { currency: 'BTC', network: 'Bitcoin' },
-  eth:          { currency: 'ETH', network: 'Ethereum' },
-  usdttrc20:    { currency: 'USDT', network: 'TRC20' },
-  usdterc20:    { currency: 'USDT', network: 'ERC20' },
-  trx:          { currency: 'TRX', network: 'TRC20' },
-  bnbbsc:       { currency: 'BNB', network: 'BEP20' },
-  sol:          { currency: 'SOL', network: 'Solana' },
-  ltc:          { currency: 'LTC', network: 'Litecoin' },
-  usdcbsc:      { currency: 'USDC', network: 'BEP20' },
-  doge:         { currency: 'DOGE', network: 'Dogecoin' },
+  btc:       { currency: 'BTC',  network: 'Bitcoin'  },
+  eth:       { currency: 'ETH',  network: 'Ethereum' },
+  usdttrc20: { currency: 'USDT', network: 'TRC20'    },
+  usdterc20: { currency: 'USDT', network: 'ERC20'    },
+  trx:       { currency: 'TRX',  network: 'TRC20'    },
+  bnbbsc:    { currency: 'BNB',  network: 'BEP20'    },
+  sol:       { currency: 'SOL',  network: 'Solana'   },
+  ltc:       { currency: 'LTC',  network: 'Litecoin' },
+  usdcbsc:   { currency: 'USDC', network: 'BEP20'    },
+  doge:      { currency: 'DOGE', network: 'Dogecoin' },
 }
 
 export async function GET(req) {
@@ -61,49 +60,33 @@ export async function POST(req) {
     }
 
     const orderId = `AS${user.id.split('-')[0]}${Date.now()}`
-console.log('Order ID length:', orderId.length, 'Value:', orderId)
+    console.log('Order ID:', orderId, 'Length:', orderId.length)
 
-    // Check if user already has a static address for this currency/network
-    const { data: existingDeposit } = await supabaseAdmin
-      .from('deposits')
-      .select('oxapay_address')
-      .eq('user_id', user.id)
-      .eq('currency', currency)
-      .not('oxapay_address', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    let address = existingDeposit?.oxapay_address || null
-
-    // Generate new static address if none exists
-    if (!address) {
-      const oxaRes = await fetch('https://api.oxapay.com/v1/payment/static-address', {
-        method: 'POST',
-        headers: {
-          'merchant_api_key': process.env.OXAPAY_MERCHANT_KEY,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-  network: currencyConfig.network,
-  callback_url: `https://www.altsignals.finance/api/deposit/webhook`,
-  order_id: orderId,
-  description: `AltSignals deposit for ${user.email}`
-})
-
+    // Always generate fresh static address with callback URL
+    const oxaRes = await fetch('https://api.oxapay.com/v1/payment/static-address', {
+      method: 'POST',
+      headers: {
+        'merchant_api_key': process.env.OXAPAY_MERCHANT_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        network: currencyConfig.network,
+        callback_url: 'https://www.altsignals.finance/api/deposit/webhook',
+        order_id: orderId,
+        description: `AltSignals deposit for ${user.email}`
       })
+    })
 
-      const oxaData = await oxaRes.json()
-      console.log('OxaPay static address response:', JSON.stringify(oxaData))
+    const oxaData = await oxaRes.json()
+    console.log('OxaPay response:', JSON.stringify(oxaData))
 
-      if (!oxaData.data?.address) {
-        return Response.json({ error: 'Failed to generate deposit address. Please try again.' }, { status: 500 })
-      }
-
-      address = oxaData.data.address
+    if (!oxaData.data?.address) {
+      return Response.json({ error: 'Failed to generate deposit address. Please try again.' }, { status: 500 })
     }
 
-    // Save deposit record
+    const address = oxaData.data.address
+    const trackId = oxaData.data.track_id ? String(oxaData.data.track_id) : null
+
     const { data: deposit } = await supabaseAdmin
       .from('deposits')
       .insert({
@@ -114,7 +97,8 @@ console.log('Order ID length:', orderId.length, 'Value:', orderId)
         payment_id: orderId,
         invoice_id: orderId,
         order_id: orderId,
-        oxapay_address: address
+        oxapay_address: address,
+        oxapay_track_id: trackId
       })
       .select()
       .single()
