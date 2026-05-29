@@ -60,7 +60,8 @@ export async function POST(req) {
       return Response.json({ error: 'Unsupported currency' }, { status: 400 })
     }
 
-    const orderId = `AS-${user.id.split('-')[0]}-${Date.now()}`
+    const orderId = `AS${user.id.split('-')[0]}${Date.now()}`
+console.log('Order ID length:', orderId.length, 'Value:', orderId)
 
     // Check if user already has a static address for this currency/network
     const { data: existingDeposit } = await supabaseAdmin
@@ -84,12 +85,12 @@ export async function POST(req) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          network: currencyConfig.network,
-          to_currency: currencyConfig.currency,
-          callback_url: `https://www.altsignals.finance/api/deposit/webhook`,
-          order_id: orderId,
-          description: `AltSignals deposit for ${user.email}`
-        })
+  network: currencyConfig.network,
+  callback_url: `https://www.altsignals.finance/api/deposit/webhook`,
+  order_id: orderId,
+  description: `AltSignals deposit for ${user.email}`
+})
+
       })
 
       const oxaData = await oxaRes.json()
