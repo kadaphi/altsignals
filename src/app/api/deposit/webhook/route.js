@@ -33,7 +33,7 @@ export async function POST(req) {
     }
 
     // Get actual amount paid from txs
-    const actualAmount = txs?.[0]?.sent_amount || data.amount
+   const actualAmount = txs?.[0]?.value || data.value || data.amount
     const paidCurrency = txs?.[0]?.currency || data.currency
 
     // Find deposit by order_id
