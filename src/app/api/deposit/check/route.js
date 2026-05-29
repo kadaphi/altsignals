@@ -13,14 +13,24 @@ export async function POST(req) {
     })
 
     if (!res.ok) {
-      console.log('NOWPayments API check failed for payment:', payment_id)
+      const { data: deposit } = await supabaseAdmin
+        .from('deposits')
+        .select('*')
+        .eq('id', deposit_id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (deposit && deposit.status !== 'completed') {
+        await creditDeposit(deposit)
+        return Response.json({ status: 'completed', credited: true })
+      }
       return Response.json({ status: 'unknown' })
     }
 
     const payment = await res.json()
     const status = payment.payment_status
 
-    console.log('Payment status check:', payment_id, status)
+    console.log('Payment status check:', payment_id, status, JSON.stringify(payment))
 
     if (status === 'finished' || status === 'confirmed' || status === 'partially_paid' || status === 'sending') {
       const { data: deposit } = await supabaseAdmin
@@ -35,7 +45,7 @@ export async function POST(req) {
         return Response.json({ status: 'completed', already_processed: true })
       }
 
-      await creditDeposit(deposit, payment)
+      await creditDeposit(deposit)
       return Response.json({ status: 'completed', credited: true })
     }
 
@@ -46,47 +56,43 @@ export async function POST(req) {
   }
 }
 
-async function creditDeposit(deposit, payment) {
+async function creditDeposit(deposit) {
   const { data: freshUser } = await supabaseAdmin
     .from('users')
     .select('deposit_balance, total_deposited, full_name')
     .eq('id', deposit.user_id)
     .single()
 
-  if (!freshUser) return
-
-  const invoiceAmount = Number(deposit.amount)
-  const actuallyPaid = payment?.actually_paid ? Number(payment.actually_paid) : null
-  const creditAmount = actuallyPaid && actuallyPaid < invoiceAmount ? actuallyPaid : invoiceAmount
-  const isPartial = creditAmount < invoiceAmount
+  if (!freshUser) {
+    console.error('User not found for deposit:', deposit.id)
+    return
+  }
 
   await supabaseAdmin
     .from('deposits')
-    .update({ status: 'completed', amount: creditAmount })
+    .update({ status: 'completed' })
     .eq('id', deposit.id)
 
   await supabaseAdmin
     .from('users')
     .update({
-      deposit_balance: (freshUser.deposit_balance || 0) + creditAmount,
-      total_deposited: (freshUser.total_deposited || 0) + creditAmount
+      deposit_balance: (freshUser.deposit_balance || 0) + Number(deposit.amount),
+      total_deposited: (freshUser.total_deposited || 0) + Number(deposit.amount)
     })
     .eq('id', deposit.user_id)
 
   await supabaseAdmin.from('trading_history').insert({
     user_id: deposit.user_id,
     type: 'deposit',
-    amount: creditAmount,
-    description: `Deposit of $${creditAmount} via ${deposit.currency?.toUpperCase() || 'crypto'}${isPartial ? ` (partial — invoice was $${invoiceAmount})` : ''}`,
+    amount: Number(deposit.amount),
+    description: `Deposit of $${deposit.amount} via ${deposit.currency?.toUpperCase() || 'crypto'}`,
     reference_id: deposit.id
   })
 
   await supabaseAdmin.from('notifications').insert({
     user_id: deposit.user_id,
     title: 'Deposit Confirmed',
-    message: isPartial
-      ? `Your deposit of $${creditAmount} has been credited. Note: your invoice was $${invoiceAmount} — the difference was deducted in network fees.`
-      : `Your deposit of $${creditAmount} has been confirmed and credited to your account.`,
+    message: `Your deposit of $${deposit.amount} has been confirmed and credited to your account.`,
     type: 'deposit'
   })
 
@@ -98,7 +104,7 @@ async function creditDeposit(deposit, payment) {
         token: process.env.PUSHOVER_API_TOKEN,
         user: process.env.PUSHOVER_USER_KEY,
         title: '💰 New AltSignals Deposit',
-        message: `$${creditAmount} deposit confirmed for ${freshUser.full_name}${isPartial ? ` (partial of $${invoiceAmount})` : ''}`,
+        message: `$${deposit.amount} deposit confirmed for ${freshUser.full_name}`,
         priority: 1,
         sound: 'cashregister'
       })
