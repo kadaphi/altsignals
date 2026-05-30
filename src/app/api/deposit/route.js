@@ -2,17 +2,20 @@ import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 
 const CURRENCY_MAP = {
-  btc:       { currency: 'BTC',  network: 'Bitcoin'  },
-  eth:       { currency: 'ETH',  network: 'Ethereum' },
-  usdttrc20: { currency: 'USDT', network: 'TRC20'    },
-  usdterc20: { currency: 'USDT', network: 'ERC20'    },
-  trx:       { currency: 'TRX',  network: 'TRC20'    },
-  bnbbsc:    { currency: 'BNB',  network: 'BEP20'    },
-  sol:       { currency: 'SOL',  network: 'Solana'   },
-  ltc:       { currency: 'LTC',  network: 'Litecoin' },
-  usdcbsc:   { currency: 'USDC', network: 'BEP20'    },
-  doge:      { currency: 'DOGE', network: 'Dogecoin' },
+  btc:          { currency: 'BTC',  network: 'Bitcoin'  },
+  eth:          { currency: 'ETH',  network: 'Ethereum' },
+  usdttrc20:    { currency: 'USDT', network: 'TRC20'    },
+  usdterc20:    { currency: 'USDT', network: 'ERC20'    },
+  trx:          { currency: 'TRX',  network: 'TRC20'    },
+  bnbbsc:       { currency: 'BNB',  network: 'BEP20'    },
+  sol:          { currency: 'SOL',  network: 'Solana'   },
+  ltc:          { currency: 'LTC',  network: 'Litecoin' },
+  usdcbsc:      { currency: 'USDC', network: 'BEP20'    },
+  doge:         { currency: 'DOGE', network: 'Dogecoin' },
+  xrp:          { currency: 'XRP',  network: 'Ripple'   },
+  maticpolygon: { currency: 'POL',  network: 'Polygon'  },
 }
+
 
 export async function GET(req) {
   try {

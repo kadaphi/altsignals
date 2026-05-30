@@ -324,14 +324,11 @@ export default function LandingPage() {
                 features:[
                   'VIP Futures Signals',
                   '95% Win Rate Signals',
-                  '24/7 Trading Support',
-                  'Live Trading Sessions',
-                  'Members Only Community',
-                  'Daily Market Analysis'
+                  '24/7 Trading Support'
                 ]
               },
               {
-                tier:'Premium',
+                tier:'Lifetime',
                 price:'$999',
                 period:'one time',
                 featured:true,
@@ -346,15 +343,16 @@ export default function LandingPage() {
                 ]
               },
               {
-                tier:'Lifetime',
+                tier:'Premium',
                 price:'$599',
-                period:'one time',
+                period:'180 days',
                 features:[
                   'VIP Futures Signals',
                   '95% Win Rate Signals',
                   '24/7 Trading Support',
-                  'Lifetime Access',
+                  'Live Trading Sessions',
                   'All Future Updates',
+                  'Daily Market Analysis',
                   'Members Only Community'
                 ]
               }

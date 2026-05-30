@@ -226,7 +226,11 @@ export default function VIPPage() {
                     opacity: purchasing !== null && purchasing !== plan.id ? 0.5 : 1,
                     transition:'opacity 0.2s'
                   }}>
-                  {purchasing === plan.id ? 'Processing...' : `Get ${plan.name} →`}
+                  {purchasing === plan.id 
+  ? 'Processing...' 
+  : plan.name === 'Lifetime' 
+    ? 'Get 180 Days →' 
+    : `Get ${plan.name} →`}
                 </button>
               </div>
             )

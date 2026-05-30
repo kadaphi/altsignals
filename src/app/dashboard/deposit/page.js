@@ -4,17 +4,20 @@ import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/navigation'
 
 const CURRENCIES = [
-  { id: 'usdttrc20', symbol: 'USDT TRC20', name: 'Tether TRC20', icon: '₮', color: '#26A17B' },
-  { id: 'usdterc20', symbol: 'USDT ERC20', name: 'Tether ERC20', icon: '₮', color: '#26A17B' },
-  { id: 'usdcbsc',   symbol: 'USDC',       name: 'USD Coin',     icon: '$', color: '#2775CA' },
-  { id: 'btc',       symbol: 'BTC',        name: 'Bitcoin',      icon: '₿', color: '#F7931A' },
-  { id: 'eth',       symbol: 'ETH',        name: 'Ethereum',     icon: 'Ξ', color: '#627EEA' },
-  { id: 'bnbbsc',    symbol: 'BNB',        name: 'BNB Chain',    icon: 'B', color: '#F3BA2F' },
-  { id: 'trx',       symbol: 'TRX',        name: 'Tron',         icon: '◈', color: '#FF0013' },
-  { id: 'sol',       symbol: 'SOL',        name: 'Solana',       icon: '◎', color: '#9945FF' },
-  { id: 'ltc',       symbol: 'LTC',        name: 'Litecoin',     icon: 'Ł', color: '#BFBBBB' },
-  { id: 'doge',      symbol: 'DOGE',       name: 'Dogecoin',     icon: 'Ð', color: '#C2A633' },
+  { id: 'btc',          symbol: 'BTC',        name: 'Bitcoin',       icon: '₿', color: '#F7931A' },
+  { id: 'eth',          symbol: 'ETH',        name: 'Ethereum',      icon: 'Ξ', color: '#627EEA' },
+  { id: 'bnbbsc',       symbol: 'BNB',        name: 'BNB Chain',     icon: 'B', color: '#F3BA2F' },
+  { id: 'usdttrc20',    symbol: 'USDT TRC20', name: 'Tether TRC20',  icon: '₮', color: '#26A17B' },
+  { id: 'usdterc20',    symbol: 'USDT ERC20', name: 'Tether ERC20',  icon: '₮', color: '#26A17B' },
+  { id: 'usdcbsc',      symbol: 'USDC',       name: 'USD Coin',      icon: '$', color: '#2775CA' },
+  { id: 'trx',          symbol: 'TRX',        name: 'Tron',          icon: '◈', color: '#FF0013' },
+  { id: 'sol',          symbol: 'SOL',        name: 'Solana',        icon: '◎', color: '#9945FF' },
+  { id: 'ltc',          symbol: 'LTC',        name: 'Litecoin',      icon: 'Ł', color: '#BFBBBB' },
+  { id: 'doge',         symbol: 'DOGE',       name: 'Dogecoin',      icon: 'Ð', color: '#C2A633' },
+  { id: 'xrp',          symbol: 'XRP',        name: 'Ripple',        icon: 'X', color: '#00AAE4' },
+  { id: 'maticpolygon', symbol: 'MATIC',      name: 'Polygon',       icon: '⬡', color: '#8247E5' },
 ]
+
 
 // Stablecoins don't need conversion
 const STABLECOINS = ['usdttrc20', 'usdterc20', 'usdcbsc']
@@ -22,8 +25,10 @@ const STABLECOINS = ['usdttrc20', 'usdterc20', 'usdcbsc']
 // CoinGecko IDs for price fetch
 const COINGECKO_IDS = {
   btc: 'bitcoin', eth: 'ethereum', bnbbsc: 'binancecoin',
-  trx: 'tron', sol: 'solana', ltc: 'litecoin', doge: 'dogecoin'
+  trx: 'tron', sol: 'solana', ltc: 'litecoin', doge: 'dogecoin',
+  xrp: 'ripple', maticpolygon: 'matic-network'
 }
+
 
 export default function DepositPage() {
   const { user, updateUser } = useAuth()
