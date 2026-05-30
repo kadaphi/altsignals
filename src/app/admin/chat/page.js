@@ -10,6 +10,7 @@ export default function AdminChatPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [activeTab, setActiveTab] = useState('active')
+  const [showChat, setShowChat] = useState(false)
   const messagesEndRef = useRef(null)
   const pollRef = useRef(null)
 
@@ -84,6 +85,7 @@ export default function AdminChatPage() {
       })
       setSelectedSession(null)
       setMessages([])
+      setShowChat(false)
       fetchSessions()
     } catch {}
   }
@@ -100,6 +102,11 @@ export default function AdminChatPage() {
     } catch {}
   }
 
+  function selectSession(s) {
+    setSelectedSession(s)
+    setShowChat(true)
+  }
+
   const displaySessions = activeTab === 'active' ? sessions : closedSessions
 
   if (loading) return (
@@ -111,13 +118,34 @@ export default function AdminChatPage() {
 
   return (
     <div style={{ maxWidth:'1200px' }}>
-      <div style={{ marginBottom:'20px' }}>
+      <style>{`
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .chat-layout { display:grid; grid-template-columns:300px 1fr; gap:16px; height:620px; }
+        .chat-sessions { display:flex !important; }
+        .chat-window { display:flex !important; }
+        @media(max-width:768px){
+          .chat-layout { grid-template-columns:1fr !important; height:auto !important; }
+          .chat-sessions { display:${showChat ? 'none' : 'flex'} !important; height:400px; }
+          .chat-window { display:${showChat ? 'flex' : 'none'} !important; height:600px; }
+        }
+      `}</style>
+
+      <div style={{ marginBottom:'20px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <h1 style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'28px', fontWeight:'700', color:'#E8E4DC' }}>Live Chat</h1>
+        {showChat && (
+          <button onClick={() => { setShowChat(false); setSelectedSession(null) }}
+            style={{ background:'none', border:'1px solid rgba(0,229,255,0.2)', color:'#8A8E99', padding:'8px 16px', fontSize:'10px', fontWeight:'600', cursor:'pointer', fontFamily:'Inter,sans-serif', display:'none' }}
+            className="chat-back-btn">
+            ← Back
+          </button>
+        )}
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'300px 1fr', gap:'16px', height:'620px' }}>
-        {/* Sessions */}
-        <div style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', display:'flex', flexDirection:'column' }}>
+      <style>{`.chat-back-btn { display:none !important; } @media(max-width:768px){ .chat-back-btn { display:flex !important; } }`}</style>
+
+      <div className="chat-layout">
+        {/* Sessions list */}
+        <div className="chat-sessions" style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', flexDirection:'column' }}>
           <div style={{ display:'flex', borderBottom:'1px solid rgba(0,229,255,0.08)', flexShrink:0 }}>
             {['active', 'closed'].map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
@@ -130,7 +158,7 @@ export default function AdminChatPage() {
             {displaySessions.length === 0 ? (
               <div style={{ padding:'24px', textAlign:'center', fontSize:'12px', color:'#8A8E99' }}>No {activeTab} chats</div>
             ) : displaySessions.map((s, i) => (
-              <div key={i} onClick={() => setSelectedSession(s)}
+              <div key={i} onClick={() => selectSession(s)}
                 style={{ padding:'14px 16px', borderBottom:'1px solid rgba(0,229,255,0.04)', cursor:'pointer', background: selectedSession?.id === s.id ? 'rgba(0,229,255,0.06)' : 'none', borderLeft: selectedSession?.id === s.id ? '2px solid #00E5FF' : '2px solid transparent', opacity: s.status === 'closed' ? 0.7 : 1 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'2px' }}>
                   <div style={{ width:'6px', height:'6px', background: s.user_id ? '#00E5FF' : '#00FF88', borderRadius:'50%', flexShrink:0 }}></div>
@@ -138,7 +166,7 @@ export default function AdminChatPage() {
                 </div>
                 <div style={{ fontSize:'10px', color:'#8A8E99', paddingLeft:'14px' }}>{s.display_email}</div>
                 <div style={{ fontSize:'9px', paddingLeft:'14px', marginTop:'2px', color: s.user_id ? '#00E5FF' : '#00FF88', fontWeight:'600' }}>
-                  {s.user_id ? 'Registered' : 'Guest'} {s.status === 'closed' ? '· Closed' : ''}
+                  {s.user_id ? 'Registered' : 'Guest'}{s.status === 'closed' ? ' · Closed' : ''}
                 </div>
               </div>
             ))}
@@ -146,7 +174,7 @@ export default function AdminChatPage() {
         </div>
 
         {/* Chat window */}
-        <div style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', display:'flex', flexDirection:'column' }}>
+        <div className="chat-window" style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', flexDirection:'column' }}>
           {!selectedSession ? (
             <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:'12px' }}>
               <div style={{ fontSize:'32px', opacity:'0.3' }}>💬</div>
@@ -162,12 +190,12 @@ export default function AdminChatPage() {
                 {selectedSession.status === 'closed' ? (
                   <button onClick={handleReopen}
                     style={{ background:'rgba(0,255,136,0.1)', border:'1px solid rgba(0,255,136,0.3)', color:'#00FF88', padding:'8px 16px', fontSize:'9px', fontWeight:'600', letterSpacing:'1.5px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
-                    Reopen Chat
+                    Reopen
                   </button>
                 ) : (
                   <button onClick={handleClose}
                     style={{ background:'rgba(255,68,68,0.1)', border:'1px solid rgba(255,68,68,0.3)', color:'#FF4444', padding:'8px 16px', fontSize:'9px', fontWeight:'600', letterSpacing:'1.5px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
-                    Close Chat
+                    Close
                   </button>
                 )}
               </div>
@@ -178,7 +206,7 @@ export default function AdminChatPage() {
                 )}
                 {messages.map((msg, i) => (
                   <div key={i} style={{ display:'flex', justifyContent: msg.is_admin ? 'flex-end' : 'flex-start' }}>
-                    <div style={{ maxWidth:'70%' }}>
+                    <div style={{ maxWidth:'75%' }}>
                       <div style={{ background: msg.is_admin ? 'rgba(0,229,255,0.15)' : '#111320', border:`1px solid ${msg.is_admin ? 'rgba(0,229,255,0.3)' : 'rgba(0,229,255,0.08)'}`, padding:'10px 14px' }}>
                         {msg.image_url && <img src={msg.image_url} alt="attachment" style={{ maxWidth:'200px', marginBottom:'8px', display:'block' }} />}
                         <div style={{ fontSize:'12px', color:'#E8E4DC', lineHeight:'1.6' }}>{msg.message}</div>
@@ -195,10 +223,10 @@ export default function AdminChatPage() {
               <div style={{ padding:'16px', borderTop:'1px solid rgba(0,229,255,0.08)', flexShrink:0 }}>
                 {selectedSession.status === 'closed' ? (
                   <div style={{ textAlign:'center', fontSize:'11px', color:'#8A8E99', padding:'8px' }}>
-                    This chat is closed. Reopen to send messages.
+                    Chat closed. Reopen to send messages.
                   </div>
                 ) : (
-                  <div style={{ display:'flex', gap:'12px' }}>
+                  <div style={{ display:'flex', gap:'8px' }}>
                     <input
                       style={{ flex:1, background:'#111320', border:'1px solid rgba(0,229,255,0.15)', padding:'12px 16px', color:'#E8E4DC', fontFamily:'Inter,sans-serif', fontSize:'13px', outline:'none' }}
                       placeholder="Type a reply..."
@@ -207,7 +235,7 @@ export default function AdminChatPage() {
                       onKeyDown={e => e.key === 'Enter' && handleReply()}
                     />
                     <button onClick={handleReply} disabled={sending || !reply.trim()}
-                      style={{ background:'#00E5FF', border:'none', color:'#0A0A0F', padding:'12px 24px', fontSize:'10px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', opacity: sending || !reply.trim() ? 0.6 : 1 }}>
+                      style={{ background:'#00E5FF', border:'none', color:'#0A0A0F', padding:'12px 20px', fontSize:'10px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', opacity: sending || !reply.trim() ? 0.6 : 1 }}>
                       {sending ? '...' : 'Send'}
                     </button>
                   </div>

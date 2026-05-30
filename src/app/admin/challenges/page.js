@@ -24,10 +24,7 @@ export default function AdminChallengesPage() {
         const data = await res.json()
         setChallenges(data.challenges || [])
         setEnrollments(data.enrollments || [])
-        const fees = {}
-        const links = {}
-        const prizes = {}
-        const rewards = {}
+        const fees = {}, links = {}, prizes = {}, rewards = {}
         data.challenges?.forEach(c => {
           fees[c.id] = c.entry_fee
           links[c.id] = c.challenge_link || ''
@@ -77,6 +74,7 @@ export default function AdminChallengesPage() {
 
   const tierColors = { 1:'#00E5FF', 2:'#00FF88', 3:'#FFD700', 4:'#FF6B35' }
   const inputStyle = { width:'100%', background:'#111320', border:'1px solid rgba(0,229,255,0.15)', padding:'10px 12px', color:'#E8E4DC', fontFamily:'Inter,sans-serif', fontSize:'12px', outline:'none' }
+  const labelStyle = { fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'6px', display:'block' }
 
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'400px' }}>
@@ -87,85 +85,111 @@ export default function AdminChallengesPage() {
 
   return (
     <div style={{ maxWidth:'1200px' }}>
+      <style>{`
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .challenges-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+        @media(max-width:768px){ .challenges-grid{ grid-template-columns:1fr !important; } }
+      `}</style>
+
       <div style={{ marginBottom:'28px' }}>
         <h1 style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'28px', fontWeight:'700', color:'#E8E4DC' }}>Challenges</h1>
         <div style={{ fontSize:'12px', color:'#8A8E99', marginTop:'4px' }}>{enrollments.length} total enrollments</div>
       </div>
 
-      <div style={{ display:'flex', gap:'4px', marginBottom:'24px', borderBottom:'1px solid rgba(0,229,255,0.08)' }}>
+      <div style={{ display:'flex', gap:'4px', marginBottom:'24px', borderBottom:'1px solid rgba(0,229,255,0.08)', overflowX:'auto' }}>
         {['enrollments', 'challenges'].map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            style={{ background:'none', border:'none', borderBottom: activeTab === tab ? '2px solid #00E5FF' : '2px solid transparent', padding:'12px 20px', color: activeTab === tab ? '#00E5FF' : '#8A8E99', fontSize:'11px', fontWeight:'600', letterSpacing:'1.5px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', marginBottom:'-1px' }}>
+            style={{ background:'none', border:'none', borderBottom: activeTab === tab ? '2px solid #00E5FF' : '2px solid transparent', padding:'12px 20px', color: activeTab === tab ? '#00E5FF' : '#8A8E99', fontSize:'11px', fontWeight:'600', letterSpacing:'1.5px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', marginBottom:'-1px', whiteSpace:'nowrap' }}>
             {tab}
           </button>
         ))}
       </div>
 
+      {/* Enrollments */}
       {activeTab === 'enrollments' && (
         <div style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)' }}>
-          <div style={{ display:'grid', gridTemplateColumns:'2fr 2fr 1fr 1fr 1fr', gap:'16px', padding:'12px 20px', borderBottom:'1px solid rgba(0,229,255,0.08)', fontSize:'9px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99' }}>
-            <div>User</div><div>Challenge</div><div>Fee Paid</div><div>Status</div><div>Actions</div>
-          </div>
           {enrollments.length === 0 ? (
             <div style={{ padding:'40px', textAlign:'center', fontSize:'13px', color:'#8A8E99' }}>No enrollments yet</div>
           ) : enrollments.map((e, i) => (
-            <div key={i} style={{ display:'grid', gridTemplateColumns:'2fr 2fr 1fr 1fr 1fr', gap:'16px', padding:'14px 20px', borderBottom:'1px solid rgba(0,229,255,0.04)', alignItems:'center' }}>
-              <div>
-                <div style={{ fontSize:'12px', fontWeight:'500', color:'#E8E4DC' }}>{e.users?.full_name}</div>
-                <div style={{ fontSize:'10px', color:'#8A8E99' }}>{e.users?.email}</div>
+            <div key={i} style={{ padding:'16px 20px', borderBottom:'1px solid rgba(0,229,255,0.04)' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'8px', gap:'12px' }}>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:'12px', fontWeight:'500', color:'#E8E4DC', marginBottom:'2px' }}>{e.users?.full_name}</div>
+                  <div style={{ fontSize:'10px', color:'#8A8E99', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.users?.email}</div>
+                </div>
+                <div style={{ fontSize:'9px', fontWeight:'600', color: e.status === 'active' ? '#00E5FF' : e.status === 'completed' ? '#00FF88' : '#FF4444', letterSpacing:'1px', flexShrink:0 }}>
+                  {e.status?.toUpperCase()}
+                </div>
               </div>
-              <div>
-                <div style={{ fontSize:'11px', color: tierColors[e.challenges?.tier] || '#00E5FF' }}>{e.challenges?.name}</div>
-                <div style={{ fontSize:'9px', color:'#8A8E99' }}>Tier {e.challenges?.tier}</div>
+              <div style={{ display:'flex', gap:'16px', flexWrap:'wrap', marginBottom:'10px' }}>
+                <div>
+                  <div style={{ fontSize:'9px', color:'#8A8E99', marginBottom:'2px' }}>Challenge</div>
+                  <div style={{ fontSize:'11px', color: tierColors[e.challenges?.tier] || '#00E5FF', fontWeight:'600' }}>{e.challenges?.name}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize:'9px', color:'#8A8E99', marginBottom:'2px' }}>Tier</div>
+                  <div style={{ fontSize:'11px', color:'#8A8E99' }}>{e.challenges?.tier}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize:'9px', color:'#8A8E99', marginBottom:'2px' }}>Fee Paid</div>
+                  <div style={{ fontSize:'12px', color:'#E8E4DC', fontWeight:'600' }}>${Number(e.entry_fee_paid || 0).toFixed(2)}</div>
+                </div>
               </div>
-              <div style={{ fontSize:'12px', color:'#E8E4DC' }}>${Number(e.entry_fee_paid || 0).toFixed(2)}</div>
-              <div style={{ fontSize:'9px', fontWeight:'600', color: e.status === 'active' ? '#00E5FF' : e.status === 'completed' ? '#00FF88' : '#FF4444', letterSpacing:'1px' }}>{e.status?.toUpperCase()}</div>
-              <div style={{ display:'flex', gap:'6px' }}>
-                {e.status === 'active' && (
-                  <>
-                    <button onClick={() => handleUpdate(e.id, 'completed')} disabled={updating === e.id}
-                      style={{ background:'rgba(0,255,136,0.1)', border:'1px solid rgba(0,255,136,0.3)', color:'#00FF88', padding:'5px 8px', fontSize:'9px', fontWeight:'600', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>Pass</button>
-                    <button onClick={() => handleUpdate(e.id, 'failed')} disabled={updating === e.id}
-                      style={{ background:'rgba(255,68,68,0.1)', border:'1px solid rgba(255,68,68,0.3)', color:'#FF4444', padding:'5px 8px', fontSize:'9px', fontWeight:'600', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>Fail</button>
-                  </>
-                )}
-              </div>
+              {e.status === 'active' && (
+                <div style={{ display:'flex', gap:'8px' }}>
+                  <button onClick={() => handleUpdate(e.id, 'completed')} disabled={updating === e.id}
+                    style={{ flex:1, background:'rgba(0,255,136,0.1)', border:'1px solid rgba(0,255,136,0.3)', color:'#00FF88', padding:'8px', fontSize:'10px', fontWeight:'600', cursor:'pointer', fontFamily:'Inter,sans-serif', letterSpacing:'1px', textTransform:'uppercase' }}>
+                    ✓ Pass
+                  </button>
+                  <button onClick={() => handleUpdate(e.id, 'failed')} disabled={updating === e.id}
+                    style={{ flex:1, background:'rgba(255,68,68,0.1)', border:'1px solid rgba(255,68,68,0.3)', color:'#FF4444', padding:'8px', fontSize:'10px', fontWeight:'600', cursor:'pointer', fontFamily:'Inter,sans-serif', letterSpacing:'1px', textTransform:'uppercase' }}>
+                    ✕ Fail
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
 
+      {/* Challenges */}
       {activeTab === 'challenges' && (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'16px' }}>
+        <div className="challenges-grid">
           {challenges.map((c) => (
             <div key={c.id} style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)', padding:'24px', position:'relative' }}>
               <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'2px', background:`linear-gradient(90deg,${tierColors[c.tier]||'#00E5FF'},transparent)` }}></div>
               <div style={{ fontSize:'9px', fontWeight:'700', letterSpacing:'3px', color: tierColors[c.tier]||'#00E5FF', marginBottom:'8px' }}>TIER {c.tier}</div>
-              <div style={{ fontSize:'16px', fontWeight:'600', color:'#E8E4DC', marginBottom:'20px' }}>{c.name}</div>
-
+              <div style={{ fontSize:'15px', fontWeight:'600', color:'#E8E4DC', marginBottom:'16px' }}>{c.name}</div>
               <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
                 <div>
-                  <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'6px' }}>Entry Fee ($)</div>
-                  <input type="number" style={inputStyle} value={editFees[c.id] ?? c.entry_fee} onChange={e => setEditFees({...editFees, [c.id]: e.target.value})} />
+                  <label style={labelStyle}>Entry Fee ($)</label>
+                  <input type="number" style={inputStyle} value={editFees[c.id] ?? c.entry_fee}
+                    onChange={e => setEditFees({...editFees, [c.id]: e.target.value})} />
                 </div>
                 <div>
-                  <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'6px' }}>Challenge Link (Telegram/WhatsApp)</div>
-                  <input style={inputStyle} placeholder="https://t.me/... or https://wa.me/..." value={editLinks[c.id] ?? ''} onChange={e => setEditLinks({...editLinks, [c.id]: e.target.value})} />
+                  <label style={labelStyle}>Challenge Link</label>
+                  <input style={inputStyle} placeholder="https://t.me/... or https://wa.me/..."
+                    value={editLinks[c.id] ?? ''}
+                    onChange={e => setEditLinks({...editLinks, [c.id]: e.target.value})} />
                 </div>
                 <div>
-                  <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'6px' }}>Prize Description</div>
-                  <input style={inputStyle} placeholder="e.g. Win $500 cash + certificate" value={editPrizes[c.id] ?? ''} onChange={e => setEditPrizes({...editPrizes, [c.id]: e.target.value})} />
+                  <label style={labelStyle}>Prize Description</label>
+                  <input style={inputStyle} placeholder="e.g. Win $500 cash"
+                    value={editPrizes[c.id] ?? ''}
+                    onChange={e => setEditPrizes({...editPrizes, [c.id]: e.target.value})} />
                 </div>
                 <div>
-                  <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'2px', textTransform:'uppercase', color:'#8A8E99', marginBottom:'6px' }}>Reward Amount ($)</div>
-                  <input type="number" style={inputStyle} placeholder="0" value={editRewards[c.id] ?? 0} onChange={e => setEditRewards({...editRewards, [c.id]: e.target.value})} />
+                  <label style={labelStyle}>Reward Amount ($)</label>
+                  <input type="number" style={inputStyle} placeholder="0"
+                    value={editRewards[c.id] ?? 0}
+                    onChange={e => setEditRewards({...editRewards, [c.id]: e.target.value})} />
                 </div>
                 <button onClick={() => handleSaveChallenge(c.id)} disabled={savingFee === c.id}
                   style={{ background:'#00E5FF', border:'none', color:'#0A0A0F', padding:'12px', fontSize:'10px', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif', clipPath:'polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)', opacity: savingFee === c.id ? 0.6 : 1 }}>
                   {savingFee === c.id ? 'Saving...' : 'Save Changes →'}
                 </button>
               </div>
-              <div style={{ marginTop:'12px', fontSize:'10px', color: c.is_active ? '#00FF88' : '#FF4444', fontWeight:'600' }}>
+              <div style={{ marginTop:'10px', fontSize:'10px', color: c.is_active ? '#00FF88' : '#FF4444', fontWeight:'600' }}>
                 {c.is_active ? '● ACTIVE' : '● INACTIVE'}
               </div>
             </div>
