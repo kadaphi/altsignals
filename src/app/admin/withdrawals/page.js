@@ -27,10 +27,7 @@ export default function AdminWithdrawalsPage() {
     try {
       await fetch('/api/admin/withdrawals', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('as_token')}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('as_token')}` },
         body: JSON.stringify({ withdrawal_id, status })
       })
       fetchWithdrawals()
@@ -41,57 +38,67 @@ export default function AdminWithdrawalsPage() {
   const filtered = filter === 'all' ? withdrawals : withdrawals.filter(w => w.status === filter)
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-      <div style={{ width: '36px', height: '36px', border: '2px solid rgba(0,229,255,0.2)', borderTop: '2px solid #00E5FF', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'400px' }}>
+      <div style={{ width:'36px', height:'36px', border:'2px solid rgba(0,229,255,0.2)', borderTop:'2px solid #00E5FF', borderRadius:'50%', animation:'spin 1s linear infinite' }}></div>
       <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
     </div>
   )
 
   return (
-    <div style={{ maxWidth: '1200px' }}>
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: '28px', fontWeight: '700', color: '#E8E4DC' }}>Withdrawals</h1>
-        <div style={{ fontSize: '12px', color: '#8A8E99', marginTop: '4px' }}>{withdrawals.filter(w => w.status === 'pending').length} pending</div>
+    <div style={{ maxWidth:'1200px' }}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+
+      <div style={{ marginBottom:'28px' }}>
+        <h1 style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'28px', fontWeight:'700', color:'#E8E4DC' }}>Withdrawals</h1>
+        <div style={{ fontSize:'12px', color:'#8A8E99', marginTop:'4px' }}>{withdrawals.filter(w => w.status === 'pending').length} pending</div>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+      <div style={{ display:'flex', gap:'8px', marginBottom:'24px', flexWrap:'wrap' }}>
         {['pending', 'completed', 'rejected', 'all'].map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{ background: filter === f ? 'rgba(0,229,255,0.15)' : '#0F0F1A', border: `1px solid ${filter === f ? '#00E5FF' : 'rgba(0,229,255,0.08)'}`, padding: '8px 16px', color: filter === f ? '#00E5FF' : '#8A8E99', fontSize: '10px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+          <button key={f} onClick={() => setFilter(f)}
+            style={{ background: filter === f ? 'rgba(0,229,255,0.15)' : '#0F0F1A', border:`1px solid ${filter === f ? '#00E5FF' : 'rgba(0,229,255,0.08)'}`, padding:'8px 16px', color: filter === f ? '#00E5FF' : '#8A8E99', fontSize:'10px', fontWeight:'600', letterSpacing:'1px', textTransform:'uppercase', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
             {f}
           </button>
         ))}
       </div>
 
-      <div style={{ background: '#0F0F1A', border: '1px solid rgba(0,229,255,0.08)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 1fr 1fr 1fr', gap: '16px', padding: '12px 20px', borderBottom: '1px solid rgba(0,229,255,0.08)', fontSize: '9px', fontWeight: '700', letterSpacing: '2px', textTransform: 'uppercase', color: '#8A8E99' }}>
-          <div>User</div>
-          <div>Wallet</div>
-          <div>Network</div>
-          <div>Amount</div>
-          <div>Status</div>
-          <div>Actions</div>
-        </div>
+      <div style={{ background:'#0F0F1A', border:'1px solid rgba(0,229,255,0.08)' }}>
         {filtered.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', fontSize: '13px', color: '#8A8E99' }}>No withdrawals found</div>
+          <div style={{ padding:'40px', textAlign:'center', fontSize:'13px', color:'#8A8E99' }}>No withdrawals found</div>
         ) : filtered.map((w, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 1fr 1fr 1fr', gap: '16px', padding: '14px 20px', borderBottom: '1px solid rgba(0,229,255,0.04)', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: '500', color: '#E8E4DC' }}>{w.users?.full_name}</div>
-              <div style={{ fontSize: '10px', color: '#8A8E99' }}>{w.users?.email}</div>
+          <div key={i} style={{ padding:'16px 20px', borderBottom:'1px solid rgba(0,229,255,0.04)' }}>
+            {/* Top row — name + amount + status */}
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'8px', gap:'12px' }}>
+              <div style={{ minWidth:0 }}>
+                <div style={{ fontSize:'13px', fontWeight:'600', color:'#E8E4DC', marginBottom:'2px' }}>{w.users?.full_name}</div>
+                <div style={{ fontSize:'10px', color:'#8A8E99', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{w.users?.email}</div>
+              </div>
+              <div style={{ textAlign:'right', flexShrink:0 }}>
+                <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:'16px', fontWeight:'700', color:'#E8E4DC' }}>${Number(w.amount).toFixed(2)}</div>
+                <div style={{ fontSize:'9px', fontWeight:'600', letterSpacing:'1px', color: w.status === 'completed' ? '#00FF88' : w.status === 'rejected' ? '#FF4444' : '#FFD700' }}>
+                  {w.status.toUpperCase()}
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: '10px', color: '#8A8E99', wordBreak: 'break-all' }}>{w.wallet_address}</div>
-            <div style={{ fontSize: '11px', color: '#8A8E99' }}>{w.network}</div>
-            <div style={{ fontSize: '13px', fontWeight: '600', color: '#E8E4DC' }}>${Number(w.amount).toFixed(2)}</div>
-            <div style={{ fontSize: '9px', fontWeight: '600', letterSpacing: '1px', color: w.status === 'completed' ? '#00FF88' : w.status === 'rejected' ? '#FF4444' : '#FFD700' }}>
-              {w.status.toUpperCase()}
+
+            {/* Wallet + network */}
+            <div style={{ marginBottom:'10px' }}>
+              <div style={{ fontSize:'9px', color:'#8A8E99', marginBottom:'2px' }}>Wallet Address ({w.network})</div>
+              <div style={{ fontSize:'10px', color:'#8A8E99', wordBreak:'break-all', fontFamily:'monospace' }}>{w.wallet_address}</div>
             </div>
+
+            <div style={{ fontSize:'9px', color:'#8A8E99', marginBottom:'10px' }}>{new Date(w.created_at).toLocaleString()}</div>
+
+            {/* Actions */}
             {w.status === 'pending' && (
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button onClick={() => handleUpdate(w.id, 'completed')} disabled={updating === w.id} style={{ background: 'rgba(0,255,136,0.1)', border: '1px solid rgba(0,255,136,0.3)', color: '#00FF88', padding: '6px 10px', fontSize: '9px', fontWeight: '600', cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
-                  Approve
+              <div style={{ display:'flex', gap:'8px' }}>
+                <button onClick={() => handleUpdate(w.id, 'completed')} disabled={updating === w.id}
+                  style={{ flex:1, background:'rgba(0,255,136,0.1)', border:'1px solid rgba(0,255,136,0.3)', color:'#00FF88', padding:'10px', fontSize:'10px', fontWeight:'600', cursor:'pointer', fontFamily:'Inter,sans-serif', letterSpacing:'1px', textTransform:'uppercase' }}>
+                  ✓ Approve
                 </button>
-                <button onClick={() => handleUpdate(w.id, 'rejected')} disabled={updating === w.id} style={{ background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.3)', color: '#FF4444', padding: '6px 10px', fontSize: '9px', fontWeight: '600', cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
-                  Reject
+                <button onClick={() => handleUpdate(w.id, 'rejected')} disabled={updating === w.id}
+                  style={{ flex:1, background:'rgba(255,68,68,0.1)', border:'1px solid rgba(255,68,68,0.3)', color:'#FF4444', padding:'10px', fontSize:'10px', fontWeight:'600', cursor:'pointer', fontFamily:'Inter,sans-serif', letterSpacing:'1px', textTransform:'uppercase' }}>
+                  ✕ Reject
                 </button>
               </div>
             )}

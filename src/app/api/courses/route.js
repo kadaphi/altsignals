@@ -81,12 +81,40 @@ export async function POST(req) {
       description: `Course purchase: ${course.title}`
     })
 
-    await supabaseAdmin.from('notifications').insert({
-      user_id: user.id,
-      title: 'Course Purchased',
-      message: `You now have access to ${course.title}. Click the link in your course library to get started.`,
-      type: 'course'
-    })
+    // If bundle purchased, also grant access to all individual courses
+if (course.order_index === 0) {
+  const { data: allCourses } = await supabaseAdmin
+    .from('courses')
+    .select('id')
+    .gt('order_index', 0)
+    .eq('is_active', true)
+
+  for (const c of (allCourses || [])) {
+    const { data: alreadyOwns } = await supabaseAdmin
+      .from('course_purchases')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('course_id', c.id)
+      .maybeSingle()
+
+    if (!alreadyOwns) {
+      await supabaseAdmin.from('course_purchases').insert({
+        user_id: user.id,
+        course_id: c.id
+      })
+    }
+  }
+}
+
+await supabaseAdmin.from('notifications').insert({
+  user_id: user.id,
+  title: course.order_index === 0 ? '🎓 Bundle Purchased!' : 'Course Purchased',
+  message: course.order_index === 0
+    ? 'You now have access to all 6 trading courses! Check your course library to get started.'
+    : `You now have access to ${course.title}. Check your course library to get started.`,
+  type: 'course'
+})
+
 
     if (process.env.PUSHOVER_API_TOKEN) {
       await fetch('https://api.pushover.net/1/messages.json', {
